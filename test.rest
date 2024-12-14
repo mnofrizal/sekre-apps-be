@@ -1,0 +1,269 @@
+@baseUrl = http://localhost:4000/api
+@contentType = application/json
+@authToken = {{login.response.body.data.accessToken}}
+
+### ==================== Auth Routes ====================
+
+### Register new user
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": "admin",
+    "email": "admin@example.com",
+    "password": "password123",
+    "name": "Admin User",
+    "role": "ADMIN"
+}
+
+### Login user
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "admin@example.com",
+    "password": "password123"
+}
+
+### ==================== User Routes ====================
+
+### Get all users
+GET {{baseUrl}}/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get user by ID
+GET {{baseUrl}}/users/user-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Create new user
+POST {{baseUrl}}/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "password": "password123",
+    "name": "New User",
+    "role": "SECRETARY"
+}
+
+### Update user
+PUT {{baseUrl}}/users/user-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Updated User Name",
+    "isActive": true
+}
+
+### Delete user
+DELETE {{baseUrl}}/users/user-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### ==================== Menu Routes ====================
+
+### Get all menu items
+GET {{baseUrl}}/menu
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get menu item by ID
+GET {{baseUrl}}/menu/menu-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Create new menu item
+# @name createMenu
+POST {{baseUrl}}/menu
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Nasi Goreng Special",
+    "category": "HEAVY_MEAL",
+    "isAvailable": true
+}
+
+### Update menu item
+PUT {{baseUrl}}/menu/{{createMenu.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Nasi Goreng Spesial",
+    "isAvailable": false
+}
+
+### Delete menu item
+DELETE {{baseUrl}}/menu/{{createMenu.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### ==================== Employee Routes ====================
+
+### Get all employees
+GET {{baseUrl}}/employees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get employee by ID
+GET {{baseUrl}}/employees/employee-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Create new employee
+# @name createEmployee
+POST {{baseUrl}}/employees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "nip": "123456789",
+    "nama": "John Doe",
+    "jabatan": "Staff",
+    "bagian": "IT",
+    "subBidang": "Development",
+    "email": "john.doe@example.com",
+    "nomorHp": "081234567890"
+}
+
+### Update employee
+PUT {{baseUrl}}/employees/{{createEmployee.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "jabatan": "Senior Staff",
+    "nomorHp": "081234567891"
+}
+
+### Delete employee
+DELETE {{baseUrl}}/employees/{{createEmployee.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### ==================== Service Request Routes ====================
+
+### Get all service requests
+GET {{baseUrl}}/service-requests
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get service request by ID
+GET {{baseUrl}}/service-requests/request-id-here
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Create new service request
+# @name createRequest
+POST {{baseUrl}}/service-requests
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "requestDate": "2024-01-20T08:00:00Z",
+    "requiredDate": "2024-01-21T12:00:00Z",
+    "dropPoint": "Lantai 3, Ruang Meeting Utama",
+    "supervisor": {
+        "name": "John Supervisor",
+        "bidang": "IT Development",
+        "phoneNumber": "081234567890"
+    },
+    "pic": {
+        "name": "Jane PIC",
+        "phoneNumber": "081234567891"
+    },
+    "employeeOrders": [
+        {
+            "employeeName": "John Employee",
+            "division": "IT",
+            "items": [
+                {
+                    "menuItemId": "{{createMenu.response.body.data.id}}",
+                    "quantity": 1,
+                    "notes": "No spicy"
+                }
+            ]
+        }
+    ]
+}
+
+### Update service request
+PUT {{baseUrl}}/service-requests/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "dropPoint": "Lantai 4, Ruang Meeting A",
+    "pic": {
+        "name": "New PIC",
+        "phoneNumber": "081234567892"
+    }
+}
+
+### Update request status
+PATCH {{baseUrl}}/service-requests/{{createRequest.response.body.data.id}}/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "PENDING_GA",
+    "notes": "Approved by supervisor"
+}
+
+### Delete service request
+DELETE {{baseUrl}}/service-requests/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+
+### ==================== Approval Routes ====================
+
+### Create approval link for a request
+# @name createApproval
+POST {{baseUrl}}/requests/approval/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "expiresIn": 24
+}
+
+### Get approval link for a request
+GET {{baseUrl}}/requests/approval/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Verify approval token
+GET {{baseUrl}}/requests/approval/verify/{{createApproval.response.body.data.token}}
+Content-Type: {{contentType}}
+
+### Respond to approval request (Approve)
+POST {{baseUrl}}/requests/approval/respond/{{createApproval.response.body.data.token}}
+Content-Type: {{contentType}}
+
+{
+    "response": true,
+    "responseNote": "Request approved"
+}
+
+### Respond to approval request (Reject)
+POST {{baseUrl}}/requests/approval/respond/{{createApproval.response.body.data.token}}
+Content-Type: {{contentType}}
+
+{
+    "response": false,
+    "responseNote": "Request rejected due to invalid information"
+}
+
+### Delete approval link
+DELETE {{baseUrl}}/requests/approval/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}

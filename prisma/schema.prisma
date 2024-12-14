@@ -1,0 +1,154 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ======= ENUMS =======
+enum DashboardRole {
+  ADMIN
+  SECRETARY
+  KITCHEN
+}
+
+enum RequestStatus {
+PENDING_SUPERVISOR    // Menunggu persetujuan supervisor
+  REJECTED_SUPERVISOR   // Ditolak oleh supervisor
+  PENDING_GA           // Menunggu persetujuan GA/admin
+  REJECTED_GA          // Ditolak oleh GA/admin
+  PENDING_KITCHEN      // Menunggu konfirmasi kitchen
+  REJECTED_KITCHEN     // Ditolak oleh kitchen
+  IN_PROGRESS          // Sedang diproses kitchen
+  COMPLETED            // Selesai diantar
+  CANCELLED            // Dibatalkan
+}
+
+enum MenuCategory {
+  HEAVY_MEAL
+  SNACK
+}
+
+enum ServiceType {
+  MEAL
+  TRANSPORT
+  ROOM
+  STATIONARY
+}
+
+// Updated Employee model
+model Employee {
+  id          String    @id @default(cuid())
+  nip         String    @unique
+  nama        String
+  jabatan     String
+  bagian      String
+  subBidang   String
+  email       String    @unique
+  nomorHp     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+// ======= USER MANAGEMENT =======
+model DashboardUser {
+ id            String        @id @default(cuid())
+  username      String        @unique
+  email         String        @unique  // Added email field
+  password      String
+  name          String
+  role          DashboardRole
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  requestsHandled ServiceRequest[] @relation("Handler")
+}
+
+// ======= MENU MANAGEMENT =======
+model MenuItem {
+  id            String       @id @default(cuid())
+  name          String
+  category      MenuCategory
+  isAvailable   Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  orderItems    OrderItem[]
+}
+
+// ======= REQUEST MANAGEMENT =======
+model ServiceRequest {
+  id            String        @id @default(cuid())
+  type          ServiceType   @default(MEAL)
+  status        RequestStatus @default(PENDING_SUPERVISOR)
+  requestDate   DateTime      // tanggal request dibuat
+  requiredDate  DateTime      // tanggal layanan dibutuhkan
+  dropPoint     String       // lokasi pengantaran
+  supervisor    Json         // { name: string, bidang: string, phoneNumber: string }
+  pic           Json         // { name: string, phoneNumber: string }
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  handlerId     String?
+  handler       DashboardUser? @relation("Handler", fields: [handlerId], references: [id])
+  
+  approvalLink  ApprovalLink?
+  employeeOrders EmployeeOrder[]
+  statusHistory StatusHistory[]
+}
+
+model EmployeeOrder {
+  id           String    @id @default(cuid())
+  requestId    String
+  request      ServiceRequest @relation(fields: [requestId], references: [id])
+  employeeName String     // nama karyawan (bisa dari database atau custom)
+  division     String?    // divisi (opsional)
+  
+  // Relations
+  orderItems   OrderItem[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model OrderItem {
+  id              String        @id @default(cuid())
+  employeeOrderId String
+  employeeOrder   EmployeeOrder @relation(fields: [employeeOrderId], references: [id])
+  menuItemId      String
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id])
+  quantity        Int
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model ApprovalLink {
+  id            String         @id @default(cuid())
+  token         String         @unique
+  requestId     String         @unique
+  request       ServiceRequest @relation(fields: [requestId], references: [id])
+  isUsed        Boolean        @default(false)
+  response      Boolean?       // true untuk approve, false untuk reject
+  responseNote  String?
+  expiresAt     DateTime
+  createdAt     DateTime       @default(now())
+}
+
+model StatusHistory {
+  id            String         @id @default(cuid())
+  requestId     String
+  request       ServiceRequest @relation(fields: [requestId], references: [id])
+  status        RequestStatus
+  changedBy     String         // bisa user dashboard atau via magic link
+  notes         String?
+  createdAt     DateTime       @default(now())
+}
