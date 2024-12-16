@@ -10,7 +10,7 @@ POST {{baseUrl}}/auth/register
 Content-Type: {{contentType}}
 
 {
-    "username": "admin",
+    "username": "admin2",
     "email": "admin@example.com",
     "password": "password123",
     "name": "Admin User",
@@ -125,13 +125,13 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 {
-    "nip": "123456789",
-    "nama": "John Doe",
-    "jabatan": "Staff",
-    "bagian": "IT",
-    "subBidang": "Development",
-    "email": "john.doe@example.com",
-    "nomorHp": "081234567890"
+    "nip": "961733371I",
+    "nama": "MUHAMMAD NAUFAL AMRIZAL",
+    "jabatan": "Officer Fasilitas dan Sarana",
+    "bagian": "SDM dan Humas",
+    "subBidang": "Fasilitas dan Sarana",
+    "email": "m.naufal@plnindonesiapowwe.co.id",
+    "nomorHp": "087733760363"
 }
 
 ### Update employee
