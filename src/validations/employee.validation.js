@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import Joi from "joi";
 
 export const employeeValidation = {
   createEmployee: Joi.object({
@@ -8,9 +8,10 @@ export const employeeValidation = {
     bagian: Joi.string().required(),
     subBidang: Joi.string().required(),
     email: Joi.string().email().required(),
-    nomorHp: Joi.string().required()
+    nomorHp: Joi.string().required(),
+    isAsman: Joi.boolean().default(false),
   }),
-  
+
   updateEmployee: Joi.object({
     nip: Joi.string(),
     nama: Joi.string(),
@@ -18,6 +19,7 @@ export const employeeValidation = {
     bagian: Joi.string(),
     subBidang: Joi.string(),
     email: Joi.string().email(),
-    nomorHp: Joi.string()
-  }).min(1)
+    nomorHp: Joi.string(),
+    isAsman: Joi.boolean(),
+  }).min(1),
 };

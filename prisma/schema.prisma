@@ -50,6 +50,7 @@ model Employee {
   subBidang String
   email     String   @unique
   nomorHp   String
+  isAsman   Boolean  @default(false) // New field to indicate if employee is Asman
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -86,16 +87,17 @@ model MenuItem {
 
 // ======= REQUEST MANAGEMENT =======
 model ServiceRequest {
-  id           String        @id @default(cuid())
-  type         ServiceType   @default(MEAL)
-  status       RequestStatus @default(PENDING_SUPERVISOR)
-  requestDate  DateTime // tanggal request dibuat
-  requiredDate DateTime // tanggal layanan dibutuhkan
-  dropPoint    String // lokasi pengantaran
-  supervisor   Json // { name: string, bidang: string, phoneNumber: string }
-  pic          Json // { name: string, phoneNumber: string }
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  judulPekerjaan String // New field for job title
+  type           ServiceType   @default(MEAL)
+  status         RequestStatus @default(PENDING_SUPERVISOR)
+  requestDate    DateTime // tanggal request dibuat
+  requiredDate   DateTime // tanggal layanan dibutuhkan
+  dropPoint      String // lokasi pengantaran
+  supervisor     Json // { name: string, bidang: string, phoneNumber: string }
+  pic            Json // { name: string, phoneNumber: string }
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   // Relations
   handlerId String?
@@ -111,7 +113,7 @@ model EmployeeOrder {
   requestId    String
   request      ServiceRequest @relation(fields: [requestId], references: [id])
   employeeName String // nama karyawan (bisa dari database atau custom)
-  division     String? // divisi (opsional)
+  entity       String? // divisi (opsional)
 
   // Relations
   orderItems OrderItem[]

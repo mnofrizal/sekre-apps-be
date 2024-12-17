@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma.js';
-import { ApiError } from '../utils/ApiError.js';
+import prisma from "../lib/prisma.js";
+import { ApiError } from "../utils/ApiError.js";
 
 export const getAllServiceRequests = async () => {
   return prisma.serviceRequest.findMany({
@@ -9,27 +9,27 @@ export const getAllServiceRequests = async () => {
           id: true,
           name: true,
           email: true,
-          role: true
-        }
+          role: true,
+        },
       },
       employeeOrders: {
         include: {
           orderItems: {
             include: {
-              menuItem: true
-            }
-          }
-        }
+              menuItem: true,
+            },
+          },
+        },
       },
       statusHistory: {
         orderBy: {
-          createdAt: 'desc'
-        }
-      }
+          createdAt: "desc",
+        },
+      },
     },
     orderBy: {
-      createdAt: 'desc'
-    }
+      createdAt: "desc",
+    },
   });
 };
 
@@ -42,24 +42,24 @@ export const getServiceRequestById = async (id) => {
           id: true,
           name: true,
           email: true,
-          role: true
-        }
+          role: true,
+        },
       },
       employeeOrders: {
         include: {
           orderItems: {
             include: {
-              menuItem: true
-            }
-          }
-        }
+              menuItem: true,
+            },
+          },
+        },
       },
       statusHistory: {
         orderBy: {
-          createdAt: 'desc'
-        }
-      }
-    }
+          createdAt: "desc",
+        },
+      },
+    },
   });
 };
 
@@ -71,41 +71,41 @@ export const createServiceRequest = async (requestData, userId) => {
     const request = await prisma.serviceRequest.create({
       data: {
         ...serviceRequestData,
-        type: 'MEAL',
+        type: "MEAL",
         handlerId: userId,
         employeeOrders: {
-          create: employeeOrders.map(order => ({
+          create: employeeOrders.map((order) => ({
             employeeName: order.employeeName,
-            division: order.division,
+            entity: order.entity,
             orderItems: {
-              create: order.items.map(item => ({
+              create: order.items.map((item) => ({
                 menuItemId: item.menuItemId,
                 quantity: item.quantity,
-                notes: item.notes
-              }))
-            }
-          }))
+                notes: item.notes,
+              })),
+            },
+          })),
         },
         statusHistory: {
           create: {
-            status: serviceRequestData.status || 'PENDING_SUPERVISOR',
+            status: serviceRequestData.status || "PENDING_SUPERVISOR",
             changedBy: userId,
-            notes: 'Request created'
-          }
-        }
+            notes: "Request created",
+          },
+        },
       },
       include: {
         employeeOrders: {
           include: {
             orderItems: {
               include: {
-                menuItem: true
-              }
-            }
-          }
+                menuItem: true,
+              },
+            },
+          },
         },
-        statusHistory: true
-      }
+        statusHistory: true,
+      },
     });
 
     return request;
@@ -126,12 +126,12 @@ export const updateServiceRequest = async (id, requestData) => {
             include: {
               orderItems: {
                 include: {
-                  menuItem: true
-                }
-              }
-            }
-          }
-        }
+                  menuItem: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       // If employee orders are provided, update them
@@ -140,32 +140,32 @@ export const updateServiceRequest = async (id, requestData) => {
         await prisma.orderItem.deleteMany({
           where: {
             employeeOrder: {
-              requestId: id
-            }
-          }
+              requestId: id,
+            },
+          },
         });
         await prisma.employeeOrder.deleteMany({
           where: {
-            requestId: id
-          }
+            requestId: id,
+          },
         });
 
         // Create new orders and items
         await Promise.all(
-          employeeOrders.map(order =>
+          employeeOrders.map((order) =>
             prisma.employeeOrder.create({
               data: {
                 requestId: id,
                 employeeName: order.employeeName,
-                division: order.division,
+                entity: order.entity,
                 orderItems: {
-                  create: order.items.map(item => ({
+                  create: order.items.map((item) => ({
                     menuItemId: item.menuItemId,
                     quantity: item.quantity,
-                    notes: item.notes
-                  }))
-                }
-              }
+                    notes: item.notes,
+                  })),
+                },
+              },
             })
           )
         );
@@ -174,7 +174,7 @@ export const updateServiceRequest = async (id, requestData) => {
       return request;
     });
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return null;
     }
     throw error;
@@ -188,33 +188,33 @@ export const deleteServiceRequest = async (id) => {
       await prisma.orderItem.deleteMany({
         where: {
           employeeOrder: {
-            requestId: id
-          }
-        }
+            requestId: id,
+          },
+        },
       });
       await prisma.employeeOrder.deleteMany({
         where: {
-          requestId: id
-        }
+          requestId: id,
+        },
       });
       await prisma.statusHistory.deleteMany({
         where: {
-          requestId: id
-        }
+          requestId: id,
+        },
       });
       await prisma.approvalLink.deleteMany({
         where: {
-          requestId: id
-        }
+          requestId: id,
+        },
       });
       // Finally delete the service request
       await prisma.serviceRequest.delete({
-        where: { id }
+        where: { id },
       });
     });
     return true;
   } catch (error) {
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return false;
     }
     throw error;
@@ -232,17 +232,17 @@ export const updateRequestStatus = async (id, newStatus, userId, notes) => {
           create: {
             status: newStatus,
             changedBy: userId,
-            notes: notes || `Status updated to ${newStatus}`
-          }
-        }
+            notes: notes || `Status updated to ${newStatus}`,
+          },
+        },
       },
       include: {
         statusHistory: {
           orderBy: {
-            createdAt: 'desc'
-          }
-        }
-      }
+            createdAt: "desc",
+          },
+        },
+      },
     });
 
     return updatedRequest;

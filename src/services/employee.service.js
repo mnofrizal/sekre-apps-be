@@ -15,6 +15,35 @@ export const getEmployeeById = async (id) => {
   });
 };
 
+export const getAllSubBidang = async () => {
+  const employees = await prisma.employee.findMany({
+    select: {
+      id: true,
+      nama: true,
+      nomorHp: true,
+      isAsman: true,
+      subBidang: true,
+    },
+    orderBy: [{ subBidang: "asc" }, { nama: "asc" }],
+  });
+
+  // Group employees by subBidang with detailed information
+  const groupedEmployees = employees.reduce((acc, emp) => {
+    if (!acc[emp.subBidang]) {
+      acc[emp.subBidang] = [];
+    }
+    acc[emp.subBidang].push({
+      id: emp.id,
+      name: emp.nama,
+      nomorHp: emp.nomorHp,
+      isAsman: emp.isAsman,
+    });
+    return acc;
+  }, {});
+
+  return groupedEmployees;
+};
+
 export const getEmployeeByNIP = async (nip) => {
   return prisma.employee.findUnique({
     where: { nip },

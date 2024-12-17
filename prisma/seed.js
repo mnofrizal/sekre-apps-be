@@ -6,6 +6,16 @@ const prisma = new PrismaClient();
 // Seed data
 const employees = [
   {
+    nip: "881033129I",
+    nama: "ABDUL KADIR",
+    jabatan: "ASsistant Manager Fasilitas dan Sarana",
+    bagian: "SDM dan Humas",
+    subBidang: "Fasilitas dan Sarana",
+    email: "abdul.kadir@plnindonesiapowwe.co.id",
+    nomorHp: "087733760363",
+    isAsman: true,
+  },
+  {
     nip: "941733238I",
     nama: "RIFDA IBNU MAJID",
     jabatan: "Officer Fasilitas dan Sarana",
@@ -13,6 +23,7 @@ const employees = [
     subBidang: "Fasilitas dan Sarana",
     email: "rifda@plnindonesiapowwe.co.id",
     nomorHp: "087733760363",
+    isAsman: false,
   },
   {
     nip: "961733371I",
@@ -22,6 +33,27 @@ const employees = [
     subBidang: "Fasilitas dan Sarana",
     email: "m.naufal@plnindonesiapowwe.co.id",
     nomorHp: "087733760363",
+    isAsman: false,
+  },
+  {
+    nip: "7292352JA",
+    nama: "JOKO SUKOCO",
+    jabatan: "Team Leader BOP Unit 1-7 (B) SLA PGU",
+    bagian: "Operasi Unit 5-7",
+    subBidang: "BOP",
+    email: "m.naufal2@plnindonesiapowwe.co.id",
+    nomorHp: "087733760363",
+    isAsman: false,
+  },
+  {
+    nip: "7393483K3",
+    nama: "AGUS KOSWARA",
+    jabatan: "Team Leader BOP Unit 1-7 (B) SLA PGU",
+    bagian: "Operasi Unit 5-7",
+    subBidang: "BOP",
+    email: "m.naufal3@plnindonesiapowwe.co.id",
+    nomorHp: "087733760363",
+    isAsman: false,
   },
 ];
 

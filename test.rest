@@ -113,6 +113,13 @@ GET {{baseUrl}}/employees
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
+
+### Get all sub bidang
+GET {{baseUrl}}/employees/sub-bidang
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+
 ### Get employee by ID
 GET {{baseUrl}}/employees/employee-id-here
 Content-Type: {{contentType}}
@@ -168,22 +175,23 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 {
+    "judulPekerjaan":"Pemeliharaan Turbin",
     "requestDate": "2024-01-20T08:00:00Z",
     "requiredDate": "2024-01-21T12:00:00Z",
     "dropPoint": "Lantai 3, Ruang Meeting Utama",
     "supervisor": {
         "name": "John Supervisor",
-        "bidang": "IT Development",
-        "phoneNumber": "081234567890"
+        "subBidang": "IT Development",
+        "nomorHp": "081234567890"
     },
     "pic": {
         "name": "Jane PIC",
-        "phoneNumber": "081234567891"
+        "nomorHp": "081234567891"
     },
     "employeeOrders": [
         {
             "employeeName": "John Employee",
-            "division": "IT",
+            "entity": "PLN IP",
             "items": [
                 {
                     "menuItemId": "{{createMenu.response.body.data.id}}",
@@ -204,7 +212,7 @@ Authorization: Bearer {{authToken}}
     "dropPoint": "Lantai 4, Ruang Meeting A",
     "pic": {
         "name": "New PIC",
-        "phoneNumber": "081234567892"
+        "nomorHp": "081234567892"
     }
 }
 
