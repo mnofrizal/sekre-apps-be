@@ -1,36 +1,65 @@
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { generateToken } from "../utils/helpers.js";
 
-export const getAllServiceRequests = async () => {
-  return prisma.serviceRequest.findMany({
-    include: {
-      handler: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
+export const getAllServiceRequests = async (user) => {
+  // Base query with all includes
+  const includeOptions = {
+    handler: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
       },
-      employeeOrders: {
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
+    },
+    employeeOrders: {
+      include: {
+        orderItems: {
+          include: {
+            menuItem: true,
           },
         },
       },
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
+    },
+    statusHistory: {
+      orderBy: {
+        createdAt: "desc",
       },
     },
+    approvalLinks: true,
+  };
+
+  // Base where clause
+  let whereClause = {};
+
+  // Filter based on user role
+  if (user.role === "KITCHEN") {
+    // Kitchen users only see requests with specific statuses
+    whereClause.status = {
+      in: [
+        "PENDING_KITCHEN",
+        "REJECTED_KITCHEN",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANCELLED",
+      ],
+    };
+  } else if (user.role !== "ADMIN") {
+    // Regular users only see their own requests
+    whereClause.handlerId = user.id;
+  }
+
+  // Get requests with filters applied
+  const requests = await prisma.serviceRequest.findMany({
+    where: whereClause,
+    include: includeOptions,
     orderBy: {
       createdAt: "desc",
     },
   });
+
+  return requests;
 };
 
 export const getServiceRequestById = async (id) => {
@@ -59,6 +88,7 @@ export const getServiceRequestById = async (id) => {
           createdAt: "desc",
         },
       },
+      approvalLinks: true,
     },
   });
 };
@@ -66,12 +96,15 @@ export const getServiceRequestById = async (id) => {
 export const createServiceRequest = async (requestData, userId) => {
   const { employeeOrders, ...serviceRequestData } = requestData;
 
+  const token = generateToken();
+
   return prisma.$transaction(async (prisma) => {
-    // Create the service request
+    // Create the service request with all related data
     const request = await prisma.serviceRequest.create({
       data: {
         ...serviceRequestData,
         type: "MEAL",
+        status: "PENDING_SUPERVISOR",
         handlerId: userId,
         employeeOrders: {
           create: employeeOrders.map((order) => ({
@@ -88,9 +121,18 @@ export const createServiceRequest = async (requestData, userId) => {
         },
         statusHistory: {
           create: {
-            status: serviceRequestData.status || "PENDING_SUPERVISOR",
+            status: "PENDING_SUPERVISOR",
             changedBy: userId,
             notes: "Request created",
+          },
+        },
+        // Create the approval link within the same transaction
+        approvalLinks: {
+          create: {
+            token: token,
+            type: "SUPERVISOR",
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+            isUsed: false,
           },
         },
       },
@@ -105,8 +147,36 @@ export const createServiceRequest = async (requestData, userId) => {
           },
         },
         statusHistory: true,
+        approvalLinks: true,
       },
     });
+
+    console.log({ request });
+
+    // Fetch to send meal message
+    const response = await fetch(
+      "http://localhost:4200/api/messages/send-meal",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: "6287733760363",
+          judulPekerjaan: request.judulPekerjaan,
+          subBidang: request.supervisor?.subBidang || "Kosong",
+          requiredDate: request.requiredDate,
+          requestDate: request.requestDate,
+          dropPoint: request.dropPoint,
+          totalEmployees: request.employeeOrders.length,
+          approvalToken: token,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
     return request;
   });

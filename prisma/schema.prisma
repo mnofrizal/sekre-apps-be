@@ -17,15 +17,15 @@ enum DashboardRole {
 }
 
 enum RequestStatus {
-  PENDING_SUPERVISOR // Menunggu persetujuan supervisor
-  REJECTED_SUPERVISOR // Ditolak oleh supervisor
-  PENDING_GA // Menunggu persetujuan GA/admin
-  REJECTED_GA // Ditolak oleh GA/admin
-  PENDING_KITCHEN // Menunggu konfirmasi kitchen
-  REJECTED_KITCHEN // Ditolak oleh kitchen
-  IN_PROGRESS // Sedang diproses kitchen
-  COMPLETED // Selesai diantar
-  CANCELLED // Dibatalkan
+  PENDING_SUPERVISOR
+  REJECTED_SUPERVISOR
+  PENDING_GA
+  REJECTED_GA
+  PENDING_KITCHEN
+  REJECTED_KITCHEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum MenuCategory {
@@ -40,6 +40,12 @@ enum ServiceType {
   STATIONARY
 }
 
+enum ApprovalType {
+  SUPERVISOR
+  GA
+  KITCHEN
+}
+
 // Updated Employee model
 model Employee {
   id        String   @id @default(cuid())
@@ -50,7 +56,7 @@ model Employee {
   subBidang String
   email     String   @unique
   nomorHp   String
-  isAsman   Boolean  @default(false) // New field to indicate if employee is Asman
+  isAsman   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -88,14 +94,14 @@ model MenuItem {
 // ======= REQUEST MANAGEMENT =======
 model ServiceRequest {
   id             String        @id @default(cuid())
-  judulPekerjaan String // New field for job title
+  judulPekerjaan String
   type           ServiceType   @default(MEAL)
   status         RequestStatus @default(PENDING_SUPERVISOR)
-  requestDate    DateTime // tanggal request dibuat
-  requiredDate   DateTime // tanggal layanan dibutuhkan
-  dropPoint      String // lokasi pengantaran
-  supervisor     Json // { name: string, bidang: string, phoneNumber: string }
-  pic            Json // { name: string, phoneNumber: string }
+  requestDate    DateTime
+  requiredDate   DateTime
+  dropPoint      String
+  supervisor     Json
+  pic            Json
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -103,7 +109,7 @@ model ServiceRequest {
   handlerId String?
   handler   DashboardUser? @relation("Handler", fields: [handlerId], references: [id])
 
-  approvalLink   ApprovalLink?
+  approvalLinks  ApprovalLink[]
   employeeOrders EmployeeOrder[]
   statusHistory  StatusHistory[]
 }
@@ -112,8 +118,8 @@ model EmployeeOrder {
   id           String         @id @default(cuid())
   requestId    String
   request      ServiceRequest @relation(fields: [requestId], references: [id])
-  employeeName String // nama karyawan (bisa dari database atau custom)
-  entity       String? // divisi (opsional)
+  employeeName String
+  entity       String?
 
   // Relations
   orderItems OrderItem[]
@@ -133,16 +139,21 @@ model OrderItem {
   updatedAt       DateTime      @updatedAt
 }
 
+// Simplified ApprovalLink model
 model ApprovalLink {
   id           String         @id @default(cuid())
   token        String         @unique
-  requestId    String         @unique
+  type         ApprovalType
+  requestId    String
   request      ServiceRequest @relation(fields: [requestId], references: [id])
   isUsed       Boolean        @default(false)
-  response     Boolean? // true untuk approve, false untuk reject
+  response     Boolean? // true for approve, false for reject
   responseNote String?
   expiresAt    DateTime
   createdAt    DateTime       @default(now())
+  respondedAt  DateTime?
+
+  @@index([requestId])
 }
 
 model StatusHistory {
@@ -150,7 +161,9 @@ model StatusHistory {
   requestId String
   request   ServiceRequest @relation(fields: [requestId], references: [id])
   status    RequestStatus
-  changedBy String // bisa user dashboard atau via magic link
+  changedBy String
   notes     String?
   createdAt DateTime       @default(now())
+
+  @@index([requestId])
 }

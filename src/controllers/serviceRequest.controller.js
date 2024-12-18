@@ -1,11 +1,16 @@
-import * as serviceRequestService from '../services/serviceRequest.service.js';
-import { ApiError } from '../utils/ApiError.js';
-import { ApiResponse } from '../utils/ApiResponse.js';
+import * as serviceRequestService from "../services/serviceRequest.service.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 export const getAllServiceRequests = async (req, res, next) => {
+  console.log(req.user);
   try {
-    const requests = await serviceRequestService.getAllServiceRequests();
-    res.json(ApiResponse.success('Service requests retrieved successfully', requests));
+    const requests = await serviceRequestService.getAllServiceRequests(
+      req.user
+    );
+    res.json(
+      ApiResponse.success("Service requests retrieved successfully", requests)
+    );
   } catch (error) {
     next(error);
   }
@@ -13,11 +18,15 @@ export const getAllServiceRequests = async (req, res, next) => {
 
 export const getServiceRequestById = async (req, res, next) => {
   try {
-    const request = await serviceRequestService.getServiceRequestById(req.params.id);
+    const request = await serviceRequestService.getServiceRequestById(
+      req.params.id
+    );
     if (!request) {
-      throw new ApiError(404, 'Service request not found');
+      throw new ApiError(404, "Service request not found");
     }
-    res.json(ApiResponse.success('Service request retrieved successfully', request));
+    res.json(
+      ApiResponse.success("Service request retrieved successfully", request)
+    );
   } catch (error) {
     next(error);
   }
@@ -25,8 +34,15 @@ export const getServiceRequestById = async (req, res, next) => {
 
 export const createServiceRequest = async (req, res, next) => {
   try {
-    const request = await serviceRequestService.createServiceRequest(req.body, req.user.id);
-    res.status(201).json(ApiResponse.success('Service request created successfully', request));
+    const request = await serviceRequestService.createServiceRequest(
+      req.body,
+      req.user.id
+    );
+    res
+      .status(201)
+      .json(
+        ApiResponse.success("Service request created successfully", request)
+      );
   } catch (error) {
     next(error);
   }
@@ -34,11 +50,16 @@ export const createServiceRequest = async (req, res, next) => {
 
 export const updateServiceRequest = async (req, res, next) => {
   try {
-    const request = await serviceRequestService.updateServiceRequest(req.params.id, req.body);
+    const request = await serviceRequestService.updateServiceRequest(
+      req.params.id,
+      req.body
+    );
     if (!request) {
-      throw new ApiError(404, 'Service request not found');
+      throw new ApiError(404, "Service request not found");
     }
-    res.json(ApiResponse.success('Service request updated successfully', request));
+    res.json(
+      ApiResponse.success("Service request updated successfully", request)
+    );
   } catch (error) {
     next(error);
   }
@@ -46,11 +67,13 @@ export const updateServiceRequest = async (req, res, next) => {
 
 export const deleteServiceRequest = async (req, res, next) => {
   try {
-    const success = await serviceRequestService.deleteServiceRequest(req.params.id);
+    const success = await serviceRequestService.deleteServiceRequest(
+      req.params.id
+    );
     if (!success) {
-      throw new ApiError(404, 'Service request not found');
+      throw new ApiError(404, "Service request not found");
     }
-    res.json(ApiResponse.success('Service request deleted successfully', null));
+    res.json(ApiResponse.success("Service request deleted successfully", null));
   } catch (error) {
     next(error);
   }
@@ -65,7 +88,12 @@ export const updateRequestStatus = async (req, res, next) => {
       req.user.id,
       notes
     );
-    res.json(ApiResponse.success('Service request status updated successfully', request));
+    res.json(
+      ApiResponse.success(
+        "Service request status updated successfully",
+        request
+      )
+    );
   } catch (error) {
     next(error);
   }

@@ -176,16 +176,17 @@ Authorization: Bearer {{authToken}}
 
 {
     "judulPekerjaan":"Pemeliharaan Turbin",
+    "type":"MEAL",
     "requestDate": "2024-01-20T08:00:00Z",
     "requiredDate": "2024-01-21T12:00:00Z",
-    "dropPoint": "Lantai 3, Ruang Meeting Utama",
+    "dropPoint": "Ruang Meeting Utama",
     "supervisor": {
         "name": "John Supervisor",
         "subBidang": "IT Development",
         "nomorHp": "081234567890"
     },
     "pic": {
-        "name": "Jane PIC",
+        "name": "AGUS PIC",
         "nomorHp": "081234567891"
     },
     "employeeOrders": [
@@ -209,7 +210,7 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 {
-    "dropPoint": "Lantai 4, Ruang Meeting A",
+    "dropPoint": "Lantai 1, Ruang Meeting B",
     "pic": {
         "name": "New PIC",
         "nomorHp": "081234567892"
@@ -245,16 +246,16 @@ Authorization: Bearer {{authToken}}
 }
 
 ### Get approval link for a request
-GET {{baseUrl}}/requests/approval/{{createRequest.response.body.data.id}}
+GET {{baseUrl}}/requests/approval/ffc3cbc61397964e8d2940430e101455d5f8a2a4e203519d71815e5c9a185747
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 ### Verify approval token
-GET {{baseUrl}}/requests/approval/verify/{{createApproval.response.body.data.token}}
+GET {{baseUrl}}/requests/approval/verify/ae9fbd27b50c7d8cd75ce3d29c1926b5f8e2147ba97055319ce073c5f910c49f
 Content-Type: {{contentType}}
 
 ### Respond to approval request (Approve)
-POST {{baseUrl}}/requests/approval/respond/{{createApproval.response.body.data.token}}
+POST {{baseUrl}}/requests/approval/respond/ae9fbd27b50c7d8cd75ce3d29c1926b5f8e2147ba97055319ce073c5f910c49f
 Content-Type: {{contentType}}
 
 {

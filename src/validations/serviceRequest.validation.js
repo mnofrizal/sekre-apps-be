@@ -30,6 +30,9 @@ const picSchema = Joi.object({
 export const serviceRequestValidation = {
   createServiceRequest: Joi.object({
     judulPekerjaan: Joi.string().required(),
+    type: Joi.string()
+      .valid(...Object.values(ServiceType))
+      .required(),
     requestDate: Joi.date().required(),
     requiredDate: Joi.date().required(),
     dropPoint: Joi.string().required(),
