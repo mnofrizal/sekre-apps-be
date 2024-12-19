@@ -7,8 +7,8 @@ export const employeeValidation = {
     jabatan: Joi.string().required(),
     bagian: Joi.string().required(),
     subBidang: Joi.string().required(),
-    email: Joi.string().email().required(),
-    nomorHp: Joi.string().required(),
+    email: Joi.string().email(),
+    nomorHp: Joi.string(),
     isAsman: Joi.boolean().default(false),
   }),
 

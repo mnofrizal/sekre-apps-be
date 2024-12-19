@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
-import { APPROVAL_FLOW } from "../utils/constants.js";
+import { APPROVAL_FLOW, WA_URL } from "../utils/constants.js";
 import { generateToken } from "../utils/helpers.js";
 
 export const createApprovalLink = async (requestId, type, expiresIn = 24) => {
@@ -122,20 +122,17 @@ export const processResponse = async (token, response, responseNote) => {
         });
 
         // Fetch to send meal message
-        const response = await fetch(
-          "http://localhost:4200/api/messages/confirm-to-ga",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              phone: "6287733760363",
+        const response = await fetch(`${WA_URL}/api/messages/confirm-to-ga`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phone: "6287733760363",
 
-              approvalToken: newToken,
-            }),
-          }
-        );
+            approvalToken: newToken,
+          }),
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

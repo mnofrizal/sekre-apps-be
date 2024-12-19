@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { WA_URL } from "../utils/constants.js";
 import { generateToken } from "../utils/helpers.js";
 
 export const getAllServiceRequests = async (user) => {
@@ -154,25 +155,22 @@ export const createServiceRequest = async (requestData, userId) => {
     console.log({ request });
 
     // Fetch to send meal message
-    const response = await fetch(
-      "http://localhost:4200/api/messages/send-meal",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone: "6287733760363",
-          judulPekerjaan: request.judulPekerjaan,
-          subBidang: request.supervisor?.subBidang || "Kosong",
-          requiredDate: request.requiredDate,
-          requestDate: request.requestDate,
-          dropPoint: request.dropPoint,
-          totalEmployees: request.employeeOrders.length,
-          approvalToken: token,
-        }),
-      }
-    );
+    const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        phone: "6287733760363",
+        judulPekerjaan: request.judulPekerjaan,
+        subBidang: request.supervisor?.subBidang || "Kosong",
+        requiredDate: request.requiredDate,
+        requestDate: request.requestDate,
+        dropPoint: request.dropPoint,
+        totalEmployees: request.employeeOrders.length,
+        approvalToken: token,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

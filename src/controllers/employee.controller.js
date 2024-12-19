@@ -76,3 +76,26 @@ export const deleteEmployee = async (req, res, next) => {
     next(error);
   }
 };
+
+export const importEmployees = async (req, res, next) => {
+  try {
+    // Check if file exists
+    if (!req.file) {
+      throw new ApiError(400, "No file uploaded");
+    }
+
+    const result = await employeeService.importEmployeesService(req.file);
+
+    res.status(200).json(
+      ApiResponse.success(
+        `Successfully replaced ${result.deleted} existing employees with ${result.created.length} new employees`,
+        {
+          deletedCount: result.deleted,
+          newEmployees: result.created,
+        }
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
