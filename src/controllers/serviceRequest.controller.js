@@ -115,3 +115,19 @@ export const updateRequestStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+export const completeRequest = async (req, res, next) => {
+  try {
+    const { notes } = req.body;
+    const request = await serviceRequestService.completeRequest(
+      req.params.id,
+      req.user.id,
+      notes
+    );
+    res.json(
+      ApiResponse.success("Service request completed successfully", request)
+    );
+  } catch (error) {
+    next(error);
+  }
+};

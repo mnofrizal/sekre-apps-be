@@ -32,4 +32,11 @@ router.patch(
   serviceRequestController.updateRequestStatus
 );
 
+// Complete request
+router.put(
+  "/:id/complete",
+
+  serviceRequestController.completeRequest
+);
+
 export default router;

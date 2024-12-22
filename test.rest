@@ -62,6 +62,16 @@ Authorization: Bearer {{authToken}}
     "isActive": true
 }
 
+### Change user notification status
+PUT {{baseUrl}}/users/user-id-here/changeNotifyStatus
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "isAdminNotify": true,
+    "phone": "1234567890"
+}
+
 ### Delete user
 DELETE {{baseUrl}}/users/user-id-here
 Content-Type: {{contentType}}

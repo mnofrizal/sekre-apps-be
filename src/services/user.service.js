@@ -8,6 +8,8 @@ const userSelect = {
   name: true,
   avatar: true,
   role: true,
+  isAdminNotify: true,
+  phone: true,
   isActive: true,
   createdAt: true,
   updatedAt: true,
@@ -46,6 +48,22 @@ export const updateUser = async (id, userData) => {
   const user = await prisma.dashboardUser.update({
     where: { id },
     data: userData,
+    select: userSelect,
+  });
+  return user;
+};
+
+export const changeNotifyStatus = async (id, userData) => {
+  const { isAdminNotify, phone } = userData;
+  // First, set isAdminNotify to false and phone to null for all users
+  await prisma.dashboardUser.updateMany({
+    data: { isAdminNotify: false },
+  });
+
+  // Then, set isAdminNotify to true and update phone for the specified user
+  const user = await prisma.dashboardUser.update({
+    where: { id },
+    data: { isAdminNotify, phone },
     select: userSelect,
   });
   return user;

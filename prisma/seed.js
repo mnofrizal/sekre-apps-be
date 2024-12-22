@@ -64,6 +64,7 @@ const users = [
     password: "admin123",
     name: "Admin User",
     role: "ADMIN",
+    phone: "081234567890",
   },
   {
     username: "sekre",
@@ -71,6 +72,7 @@ const users = [
     password: "sekre123",
     name: "Sekre Admin",
     role: "ADMIN",
+    phone: "081234567891",
   },
   {
     username: "sekmsmh.sla",
@@ -78,20 +80,23 @@ const users = [
     password: "sekmsmh123",
     name: "Sekretaris MSDM",
     role: "SECRETARY",
+    phone: "081234567892",
   },
   {
     username: "sek.mkmls",
-    email: "sek.mkmls@msdm.app",
+    email: "sek.mkmls@plnindonesiapower.co.id",
     password: "sekmkmls123",
     name: "Sekretaris MKMLS",
     role: "SECRETARY",
+    phone: "081234567893",
   },
   {
     username: "kantinberkah",
-    email: "kantinberkah@msdm.app",
+    email: "kantinberkah@plnindonesiapower.co.id",
     password: "kantin123",
     name: "Kantin Berkah",
     role: "KITCHEN",
+    phone: "081234567894",
   },
 ];
 

@@ -91,29 +91,30 @@ export const getPendingServiceRequests = async (user) => {
     approvalLinks: true,
   };
 
-  // Filter for pending requests with specific statuses
+  // Filter for IN_PROGRESS and PENDING_KITCHEN requests
   let whereClause = {
     status: {
-      in: ["PENDING_GA", "PENDING_SUPERVISOR"],
+      in: ["IN_PROGRESS", "PENDING_KITCHEN"],
     },
   };
 
   // Filter based on user role
   if (user.role !== "ADMIN") {
-    // Regular users only see their own pending requests
+    // Regular users only see their own IN_PROGRESS and PENDING_KITCHEN requests
     whereClause.handlerId = user.id;
   }
 
-  // Get pending requests with filters applied
-  const pendingRequests = await prisma.serviceRequest.findMany({
-    where: whereClause,
-    include: includeOptions,
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  // Get IN_PROGRESS and PENDING_KITCHEN requests with filters applied
+  const inProgressAndPendingKitchenRequests =
+    await prisma.serviceRequest.findMany({
+      where: whereClause,
+      include: includeOptions,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  return pendingRequests;
+  return inProgressAndPendingKitchenRequests;
 };
 
 export const getServiceRequestById = async (id) => {
@@ -208,27 +209,41 @@ export const createServiceRequest = async (requestData, userId) => {
 
     console.log({ request });
 
-    // Fetch to send meal message
-    const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    // Get admin user with notification enabled
+    const adminUser = await prisma.dashboardUser.findFirst({
+      where: {
+        isAdminNotify: true,
+        phone: {
+          not: null,
+        },
       },
-      body: JSON.stringify({
-        id: request.id,
-        phone: "6287733760363",
-        judulPekerjaan: request.judulPekerjaan,
-        subBidang: request.supervisor?.subBidang || "Kosong",
-        requiredDate: request.requiredDate,
-        requestDate: request.requestDate,
-        dropPoint: request.dropPoint,
-        totalEmployees: request.employeeOrders.length,
-        approvalToken: token,
-      }),
+      select: {
+        phone: true,
+      },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (adminUser) {
+      // Fetch to send meal message
+      const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: request.id,
+          phone: adminUser.phone,
+          judulPekerjaan: request.judulPekerjaan,
+          subBidang: request.supervisor?.subBidang || "Kosong",
+          requiredDate: request.requiredDate,
+          requestDate: request.requestDate,
+          dropPoint: request.dropPoint,
+          totalEmployees: request.employeeOrders.length,
+          approvalToken: token,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     }
 
     return request;
@@ -369,5 +384,80 @@ export const updateRequestStatus = async (id, newStatus, userId, notes) => {
     });
 
     return updatedRequest;
+  });
+};
+
+export const completeRequest = async (id, userId, notes) => {
+  return prisma.$transaction(async (prisma) => {
+    // Update the request status to completed
+    const completedRequest = await prisma.serviceRequest.update({
+      where: { id },
+      data: {
+        status: "COMPLETED",
+        statusHistory: {
+          create: {
+            status: "COMPLETED",
+            changedBy: userId,
+            notes: notes || "Request completed",
+          },
+        },
+      },
+      include: {
+        statusHistory: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        employeeOrders: {
+          include: {
+            orderItems: {
+              include: {
+                menuItem: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    console.log({ completedRequest });
+
+    // Get admin user with notification enabled
+    const adminUser = await prisma.dashboardUser.findFirst({
+      where: {
+        isAdminNotify: true,
+        phone: {
+          not: null,
+        },
+      },
+      select: {
+        phone: true,
+      },
+    });
+
+    // Send message to WhatsApp
+    const response = await fetch(`${WA_URL}/api/messages/complete-notif`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: completedRequest.id,
+        phone: adminUser.phone,
+        judulPekerjaan: completedRequest.judulPekerjaan,
+        subBidang: completedRequest.supervisor?.subBidang || "Kosong",
+        requiredDate: completedRequest.requiredDate,
+
+        dropPoint: completedRequest.dropPoint,
+        totalEmployees: completedRequest.employeeOrders.length,
+
+        notes: completedRequest.statusHistory[0].notes,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return completedRequest;
   });
 };

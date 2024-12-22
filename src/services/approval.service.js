@@ -124,27 +124,38 @@ export const processResponse = async (token, response, responseNote) => {
           },
         });
 
-        // Fetch to send meal message
-        const response = await fetch(`${WA_URL}/api/messages/confirm-to-ga`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        // Get admin user with notification enabled
+        const adminUser = await prisma.dashboardUser.findFirst({
+          where: {
+            isAdminNotify: true,
           },
-          body: JSON.stringify({
-            id: approvalLink.request.id,
-            phone: "6287733760363",
-            judulPekerjaan: approvalLink.request.judulPekerjaan,
-            subBidang: approvalLink.request.supervisor?.subBidang || "Kosong",
-            requiredDate: approvalLink.request.requiredDate,
-            requestDate: approvalLink.request.requestDate,
-            dropPoint: approvalLink.request.dropPoint,
-            totalEmployees: approvalLink.request.employeeOrders.length,
-            approvalToken: newToken,
-          }),
+          select: {
+            phone: true,
+          },
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (adminUser?.phone) {
+          // Fetch to send meal message
+          const response = await fetch(`${WA_URL}/api/messages/confirm-to-ga`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: approvalLink.request.id,
+              phone: adminUser.phone,
+              judulPekerjaan: approvalLink.request.judulPekerjaan,
+              subBidang: approvalLink.request.supervisor?.subBidang || "Kosong",
+              requiredDate: approvalLink.request.requiredDate,
+              requestDate: approvalLink.request.requestDate,
+              dropPoint: approvalLink.request.dropPoint,
+              totalEmployees: approvalLink.request.employeeOrders.length,
+              approvalToken: newToken,
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
         }
       }
     } else {

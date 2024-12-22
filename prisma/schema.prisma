@@ -63,16 +63,18 @@ model Employee {
 
 // ======= USER MANAGEMENT =======
 model DashboardUser {
-  id        String        @id @default(cuid())
-  username  String        @unique
-  email     String        @unique
-  password  String
-  name      String
-  avatar    String        @default("avatar.jpg")
-  role      DashboardRole
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  username      String        @unique
+  email         String        @unique
+  password      String
+  name          String
+  avatar        String        @default("avatar.jpg")
+  role          DashboardRole
+  isActive      Boolean       @default(true)
+  phone         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  isAdminNotify Boolean       @default(false)
 
   // Relations
   requestsHandled ServiceRequest[] @relation("Handler")
