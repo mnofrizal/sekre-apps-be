@@ -16,6 +16,23 @@ export const getAllServiceRequests = async (req, res, next) => {
   }
 };
 
+export const getPendingServiceRequests = async (req, res, next) => {
+  console.log(req.user);
+  try {
+    const requests = await serviceRequestService.getPendingServiceRequests(
+      req.user
+    );
+    res.json(
+      ApiResponse.success(
+        "Pending service requests retrieved successfully",
+        requests
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getServiceRequestById = async (req, res, next) => {
   try {
     const request = await serviceRequestService.getServiceRequestById(

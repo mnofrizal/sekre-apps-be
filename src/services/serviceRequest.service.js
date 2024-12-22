@@ -63,6 +63,59 @@ export const getAllServiceRequests = async (user) => {
   return requests;
 };
 
+export const getPendingServiceRequests = async (user) => {
+  // Base query with all includes
+  const includeOptions = {
+    handler: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    },
+    employeeOrders: {
+      include: {
+        orderItems: {
+          include: {
+            menuItem: true,
+          },
+        },
+      },
+    },
+    statusHistory: {
+      orderBy: {
+        createdAt: "desc",
+      },
+    },
+    approvalLinks: true,
+  };
+
+  // Filter for pending requests with specific statuses
+  let whereClause = {
+    status: {
+      in: ["PENDING_GA", "PENDING_SUPERVISOR"],
+    },
+  };
+
+  // Filter based on user role
+  if (user.role !== "ADMIN") {
+    // Regular users only see their own pending requests
+    whereClause.handlerId = user.id;
+  }
+
+  // Get pending requests with filters applied
+  const pendingRequests = await prisma.serviceRequest.findMany({
+    where: whereClause,
+    include: includeOptions,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return pendingRequests;
+};
+
 export const getServiceRequestById = async (id) => {
   return prisma.serviceRequest.findUnique({
     where: { id },
@@ -104,6 +157,7 @@ export const createServiceRequest = async (requestData, userId) => {
     const request = await prisma.serviceRequest.create({
       data: {
         ...serviceRequestData,
+        id: token,
         type: "MEAL",
         status: "PENDING_SUPERVISOR",
         handlerId: userId,
@@ -161,6 +215,7 @@ export const createServiceRequest = async (requestData, userId) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        id: request.id,
         phone: "6287733760363",
         judulPekerjaan: request.judulPekerjaan,
         subBidang: request.supervisor?.subBidang || "Kosong",

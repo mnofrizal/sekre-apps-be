@@ -82,6 +82,9 @@ export const verifyToken = async (token) => {
 
 export const processResponse = async (token, response, responseNote) => {
   const approvalLink = await verifyToken(token);
+
+  // console.log({approvalLink});
+
   const { type } = approvalLink;
   const flow = APPROVAL_FLOW[type];
 
@@ -128,8 +131,14 @@ export const processResponse = async (token, response, responseNote) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            id: approvalLink.request.id,
             phone: "6287733760363",
-
+            judulPekerjaan: approvalLink.request.judulPekerjaan,
+            subBidang: approvalLink.request.supervisor?.subBidang || "Kosong",
+            requiredDate: approvalLink.request.requiredDate,
+            requestDate: approvalLink.request.requestDate,
+            dropPoint: approvalLink.request.dropPoint,
+            totalEmployees: approvalLink.request.employeeOrders.length,
             approvalToken: newToken,
           }),
         });

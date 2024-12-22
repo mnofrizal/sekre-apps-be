@@ -163,6 +163,11 @@ GET {{baseUrl}}/service-requests
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
+### Get pending service requests
+GET {{baseUrl}}/service-requests/pending
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
 ### Get service request by ID
 GET {{baseUrl}}/service-requests/request-id-here
 Content-Type: {{contentType}}

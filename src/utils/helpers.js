@@ -1,5 +1,9 @@
 import { randomBytes } from "crypto";
+import { nanoid } from "nanoid";
 
 export const generateToken = () => {
-  return randomBytes(32).toString("hex");
+  return nanoid(
+    6,
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  ).toUpperCase();
 };

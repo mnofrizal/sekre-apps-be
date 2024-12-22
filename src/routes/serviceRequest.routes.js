@@ -10,6 +10,8 @@ const router = express.Router();
 router.use(auth);
 
 router.get("/", serviceRequestController.getAllServiceRequests);
+router.get("/pending", serviceRequestController.getPendingServiceRequests);
+
 router.get("/:id", serviceRequestController.getServiceRequestById);
 router.post(
   "/",
