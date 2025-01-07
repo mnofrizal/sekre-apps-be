@@ -30,6 +30,7 @@ export const createUser = async (req, res, next) => {
       .status(201)
       .json(ApiResponse.success("User created successfully", user));
   } catch (error) {
+    // console.log(error);
     next(error);
   }
 };
@@ -69,6 +70,29 @@ export const deleteUser = async (req, res, next) => {
     res
       .status(200)
       .json(ApiResponse.success("User deleted successfully", null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportUsersToExcel = async (req, res, next) => {
+  try {
+    const users = await userService.getAllUsers();
+    if (!users || users.length === 0) {
+      throw new ApiError(404, "No users found");
+    }
+
+    const buffer = await userService.convertUsersToExcel(users);
+
+    // Set proper headers
+    res.set({
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="users.xlsx"',
+      "Content-Length": buffer.length,
+    });
+
+    res.send(buffer);
   } catch (error) {
     next(error);
   }

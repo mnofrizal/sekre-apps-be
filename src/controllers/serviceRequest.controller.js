@@ -131,3 +131,25 @@ export const completeRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+export const exportServiceRequestsToExcel = async (req, res, next) => {
+  try {
+    const requests = await serviceRequestService.getAllServiceRequests(
+      req.user
+    );
+    const buffer = await serviceRequestService.convertServiceRequestsToExcel(
+      requests
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=serviceRequests.xlsx"
+    );
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};

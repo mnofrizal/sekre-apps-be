@@ -18,7 +18,7 @@ export const userValidation = {
   updateUser: Joi.object({
     username: Joi.string(),
     email: Joi.string().email(),
-    password: Joi.string().min(6),
+    password: Joi.string().min(6).allow(""),
     name: Joi.string(),
     role: Joi.string().valid(...Object.values(DashboardRole)),
     avatar: Joi.string(),

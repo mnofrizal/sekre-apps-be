@@ -1,7 +1,8 @@
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { WA_URL } from "../utils/constants.js";
-import { generateToken } from "../utils/helpers.js";
+import { generateToken, getMealCategory } from "../utils/helpers.js";
+import ExcelJS from "exceljs";
 
 export const getAllServiceRequests = async (user) => {
   // Base query with all includes
@@ -63,6 +64,237 @@ export const getAllServiceRequests = async (user) => {
   return requests;
 };
 
+export const convertServiceRequestsToExcel = async (requests) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Service Requests");
+
+    // Add date row
+    worksheet.mergeCells("A2:B2");
+    const dateCell = worksheet.getCell("A2");
+    dateCell.value = "TARIKAN DATA :";
+    dateCell.font = { bold: true };
+    dateCell.alignment = { horizontal: "left", vertical: "middle" };
+
+    const currentDate = new Date().toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    worksheet.getCell("C2").value = `${currentDate} WIB`;
+    worksheet.getCell("C2").alignment = {
+      horizontal: "left",
+      vertical: "middle",
+    };
+    worksheet.getRow(2).height = 25; // Adjust height for date row
+
+    // Set up columns (now starting from row 3)
+    worksheet.columns = [
+      { header: "No", key: "no", width: 5 },
+      { header: "Order ID", key: "orderId", width: 13 },
+      { header: "Bidang", key: "bidang", width: 15 },
+      { header: "Sub Bidang", key: "subBidang", width: 25 },
+      { header: "Order", key: "order", width: 15 },
+      { header: "PLN IP Menu", key: "plnipMenu", width: 18 },
+      { header: "PLN IP Jumlah", key: "plnipJumlah", width: 10 },
+      { header: "IPS Menu", key: "ipsMenu", width: 18 },
+      { header: "IPS Jumlah", key: "ipsJumlah", width: 10 },
+      { header: "KOP Menu", key: "kopMenu", width: 18 },
+      { header: "KOP Jumlah", key: "kopJumlah", width: 10 },
+      { header: "RSU Menu", key: "rsuMenu", width: 18 },
+      { header: "RSU Jumlah", key: "rsuJumlah", width: 10 },
+      { header: "MITRA Menu", key: "mitraMenu", width: 18 },
+      { header: "MITRA Jumlah", key: "mitraJumlah", width: 10 },
+      { header: "Judul Pekerjaan", key: "judulPekerjaan", width: 30 },
+    ];
+
+    worksheet.mergeCells("A1:P1");
+
+    // Merge header cells (now starting from row 3)
+    worksheet.mergeCells("F3:G3"); // PLN IP
+    worksheet.mergeCells("H3:I3"); // IPS
+    worksheet.mergeCells("J3:K3"); // KOP
+    worksheet.mergeCells("L3:M3"); // RSU
+    worksheet.mergeCells("N3:O3"); // MITRA
+    worksheet.mergeCells("A3:A4");
+    worksheet.mergeCells("B3:B4");
+    worksheet.mergeCells("C3:C4");
+    worksheet.mergeCells("D3:D4");
+    worksheet.mergeCells("E3:E4");
+    worksheet.mergeCells("P3:P4");
+
+    // Center align columns A, B and E
+    ["A", "B", "E"].forEach((col) => {
+      worksheet.getColumn(col).alignment = { horizontal: "center" };
+    });
+
+    // Make column B bold
+    worksheet.getColumn("B").font = { bold: true };
+
+    // Add entity headers (now in row 3)
+    worksheet.getCell("A3").value = "NO";
+    worksheet.getCell("B3").value = "ORDER ID";
+    worksheet.getCell("C3").value = "BIDANG";
+    worksheet.getCell("D3").value = "SUB BIDANG";
+    worksheet.getCell("E3").value = "ORDER";
+    worksheet.getCell("F3").value = "PLN IP";
+    worksheet.getCell("H3").value = "IPS";
+    worksheet.getCell("J3").value = "KOP";
+    worksheet.getCell("L3").value = "RSU";
+    worksheet.getCell("N3").value = "MITRA";
+    worksheet.getCell("P3").value = "JUDUL PEKERJAAN";
+
+    // Style the merged headers
+    [
+      "A1",
+      "A3",
+      "B3",
+      "C3",
+      "D3",
+      "E3",
+      "F3",
+      "H3",
+      "J3",
+      "L3",
+      "N3",
+      "P3",
+    ].forEach((cell) => {
+      worksheet.getCell(cell).style = {
+        font: { bold: true },
+        alignment: { horizontal: "center", vertical: "middle" },
+        fill: {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE9E9E9" },
+        },
+        border: {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        },
+      };
+    });
+
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "LAPORAN PEMESANAN MAKAN UBP SURALAYA";
+    titleCell.font = { bold: true, size: 16 }; // Increased font size
+    titleCell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+    titleCell.border = null;
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "" },
+    };
+    worksheet.getRow(1).height = 40; // Increased height
+
+    // Add Menu/Jumlah subheaders (now in row 4)
+    const subHeaders = ["Menu", "Jumlah"];
+    ["F", "H", "J", "L", "N"].forEach((col) => {
+      const menuCell = worksheet.getCell(`${col}4`);
+      const jumlahCell = worksheet.getCell(
+        `${String.fromCharCode(col.charCodeAt(0) + 1)}4`
+      );
+
+      menuCell.value = subHeaders[0];
+      menuCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE9E9E9" },
+      };
+      menuCell.font = { bold: true };
+      menuCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      jumlahCell.value = subHeaders[1];
+      jumlahCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE9E9E9" },
+      };
+      jumlahCell.font = { bold: true };
+      jumlahCell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+
+    // Add data rows (now starting after row 4)
+    const rows = requests.map((request, index) => {
+      const entityCounts = {
+        PLNIP: { menu: new Set(), count: 0 },
+        IPS: { menu: new Set(), count: 0 },
+        KOP: { menu: new Set(), count: 0 },
+        RSU: { menu: new Set(), count: 0 },
+        MITRA: { menu: new Set(), count: 0 },
+      };
+
+      request.employeeOrders?.forEach((order) => {
+        const entity = order.entity;
+        if (entityCounts[entity]) {
+          order.orderItems?.forEach((item) => {
+            entityCounts[entity].menu.add(item.menuItem.name);
+            entityCounts[entity].count += item.quantity;
+          });
+        }
+      });
+
+      return {
+        no: index + 1,
+        orderId: `#${request.id}`,
+        bidang: "",
+        subBidang: request.supervisor?.subBidang || "",
+        order: getMealCategory(request.requiredDate),
+        plnipMenu: Array.from(entityCounts.PLNIP.menu).join(", "),
+        plnipJumlah: entityCounts.PLNIP.count,
+        ipsMenu: Array.from(entityCounts.IPS.menu).join(", "),
+        ipsJumlah: entityCounts.IPS.count,
+        kopMenu: Array.from(entityCounts.KOP.menu).join(", "),
+        kopJumlah: entityCounts.KOP.count,
+        rsuMenu: Array.from(entityCounts.RSU.menu).join(", "),
+        rsuJumlah: entityCounts.RSU.count,
+        mitraMenu: Array.from(entityCounts.MITRA.menu).join(", "),
+        mitraJumlah: entityCounts.MITRA.count,
+        judulPekerjaan: request.judulPekerjaan,
+      };
+    });
+
+    worksheet.addRows(rows);
+
+    // Set vertical alignment to middle for all cells and columns
+    worksheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        cell.alignment = { ...cell.alignment, vertical: "middle" };
+      });
+    });
+
+    // Set wrap text for menu columns
+    ["F", "H", "J", "L", "N"].forEach((col) => {
+      worksheet.getColumn(col).alignment = { wrapText: true };
+    });
+
+    // Explicitly set borders for rows 2 onwards (skipping title row)
+    for (let i = 3; i <= worksheet.rowCount; i++) {
+      worksheet.getRow(i).eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+    }
+
+    return await workbook.xlsx.writeBuffer();
+  } catch (error) {
+    console.error("Error generating Excel file:", error);
+    throw new Error("Failed to generate Excel file: " + error.message);
+  }
+};
+
 export const getPendingServiceRequests = async (user) => {
   // Base query with all includes
   const includeOptions = {
@@ -91,30 +323,29 @@ export const getPendingServiceRequests = async (user) => {
     approvalLinks: true,
   };
 
-  // Filter for IN_PROGRESS and PENDING_KITCHEN requests
+  // Filter for all pending requests
   let whereClause = {
     status: {
-      in: ["IN_PROGRESS", "PENDING_KITCHEN"],
+      in: ["PENDING_KITCHEN", "PENDING_SUPERVISOR", "PENDING_GA"],
     },
   };
 
   // Filter based on user role
   if (user.role !== "ADMIN") {
-    // Regular users only see their own IN_PROGRESS and PENDING_KITCHEN requests
+    // Regular users only see their own pending requests
     whereClause.handlerId = user.id;
   }
 
-  // Get IN_PROGRESS and PENDING_KITCHEN requests with filters applied
-  const inProgressAndPendingKitchenRequests =
-    await prisma.serviceRequest.findMany({
-      where: whereClause,
-      include: includeOptions,
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  // Get all pending requests with filters applied
+  const pendingServiceRequests = await prisma.serviceRequest.findMany({
+    where: whereClause,
+    include: includeOptions,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
-  return inProgressAndPendingKitchenRequests;
+  return pendingServiceRequests;
 };
 
 export const getServiceRequestById = async (id) => {

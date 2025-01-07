@@ -23,5 +23,7 @@ router.put(
 );
 router.delete("/:id", userController.deleteUser);
 router.put("/:id/changeNotifyStatus", userController.changeNotifyStatus);
+router.get("/data/export", userController.exportUsersToExcel); // Added route to export users to Excel
+// To fetch this in the front end, send a GET request to this endpoint and handle the response as a binary file.
 
 export default router;

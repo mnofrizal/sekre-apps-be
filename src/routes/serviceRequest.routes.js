@@ -11,8 +11,11 @@ router.use(auth);
 
 router.get("/", serviceRequestController.getAllServiceRequests);
 router.get("/pending", serviceRequestController.getPendingServiceRequests);
-
 router.get("/:id", serviceRequestController.getServiceRequestById);
+router.get(
+  "/data/export",
+  serviceRequestController.exportServiceRequestsToExcel
+);
 router.post(
   "/",
   validateRequest(serviceRequestValidation.createServiceRequest),
