@@ -94,7 +94,9 @@ export const convertServiceRequestsToExcel = async (requests) => {
     // Set up columns (now starting from row 3)
     worksheet.columns = [
       { header: "No", key: "no", width: 5 },
+      { header: "Tanggal", key: "tanggal", width: 15 },
       { header: "Order ID", key: "orderId", width: 13 },
+      { header: "Perihal", key: "perihal", width: 30 },
       { header: "Bidang", key: "bidang", width: 15 },
       { header: "Sub Bidang", key: "subBidang", width: 25 },
       { header: "Order", key: "order", width: 15 },
@@ -108,44 +110,51 @@ export const convertServiceRequestsToExcel = async (requests) => {
       { header: "RSU Jumlah", key: "rsuJumlah", width: 10 },
       { header: "MITRA Menu", key: "mitraMenu", width: 18 },
       { header: "MITRA Jumlah", key: "mitraJumlah", width: 10 },
+      { header: "PIC", key: "pic", width: 25 },
       { header: "Judul Pekerjaan", key: "judulPekerjaan", width: 30 },
     ];
 
-    worksheet.mergeCells("A1:P1");
+    worksheet.mergeCells("A1:S1");
 
     // Merge header cells (now starting from row 3)
-    worksheet.mergeCells("F3:G3"); // PLN IP
-    worksheet.mergeCells("H3:I3"); // IPS
-    worksheet.mergeCells("J3:K3"); // KOP
-    worksheet.mergeCells("L3:M3"); // RSU
-    worksheet.mergeCells("N3:O3"); // MITRA
+    worksheet.mergeCells("H3:I3"); // PLN IP
+    worksheet.mergeCells("J3:K3"); // IPS
+    worksheet.mergeCells("L3:M3"); // KOP
+    worksheet.mergeCells("N3:O3"); // RSU
+    worksheet.mergeCells("P3:Q3"); // MITRA
     worksheet.mergeCells("A3:A4");
     worksheet.mergeCells("B3:B4");
     worksheet.mergeCells("C3:C4");
     worksheet.mergeCells("D3:D4");
     worksheet.mergeCells("E3:E4");
-    worksheet.mergeCells("P3:P4");
+    worksheet.mergeCells("F3:F4");
+    worksheet.mergeCells("G3:G4");
+    worksheet.mergeCells("R3:R4");
+    worksheet.mergeCells("S3:S4");
 
-    // Center align columns A, B and E
-    ["A", "B", "E"].forEach((col) => {
+    // Center align columns A, B, C and G
+    ["A", "B", "C", "G"].forEach((col) => {
       worksheet.getColumn(col).alignment = { horizontal: "center" };
     });
 
-    // Make column B bold
-    worksheet.getColumn("B").font = { bold: true };
+    // Make column C bold (Order ID)
+    worksheet.getColumn("C").font = { bold: true };
 
     // Add entity headers (now in row 3)
     worksheet.getCell("A3").value = "NO";
-    worksheet.getCell("B3").value = "ORDER ID";
-    worksheet.getCell("C3").value = "BIDANG";
-    worksheet.getCell("D3").value = "SUB BIDANG";
-    worksheet.getCell("E3").value = "ORDER";
-    worksheet.getCell("F3").value = "PLN IP";
-    worksheet.getCell("H3").value = "IPS";
-    worksheet.getCell("J3").value = "KOP";
-    worksheet.getCell("L3").value = "RSU";
-    worksheet.getCell("N3").value = "MITRA";
-    worksheet.getCell("P3").value = "JUDUL PEKERJAAN";
+    worksheet.getCell("B3").value = "TANGGAL";
+    worksheet.getCell("C3").value = "ORDER ID";
+    worksheet.getCell("D3").value = "PERIHAL";
+    worksheet.getCell("E3").value = "BIDANG";
+    worksheet.getCell("F3").value = "SUB BIDANG";
+    worksheet.getCell("G3").value = "ORDER";
+    worksheet.getCell("H3").value = "PLN IP";
+    worksheet.getCell("J3").value = "IPS";
+    worksheet.getCell("L3").value = "KOP";
+    worksheet.getCell("N3").value = "RSU";
+    worksheet.getCell("P3").value = "MITRA";
+    worksheet.getCell("R3").value = "PIC";
+    worksheet.getCell("S3").value = "JUDUL PEKERJAAN";
 
     // Style the merged headers
     [
@@ -156,11 +165,14 @@ export const convertServiceRequestsToExcel = async (requests) => {
       "D3",
       "E3",
       "F3",
+      "G3",
       "H3",
       "J3",
       "L3",
       "N3",
       "P3",
+      "R3",
+      "S3",
     ].forEach((cell) => {
       worksheet.getCell(cell).style = {
         font: { bold: true },
@@ -197,7 +209,7 @@ export const convertServiceRequestsToExcel = async (requests) => {
 
     // Add Menu/Jumlah subheaders (now in row 4)
     const subHeaders = ["Menu", "Jumlah"];
-    ["F", "H", "J", "L", "N"].forEach((col) => {
+    ["H", "J", "L", "N", "P"].forEach((col) => {
       const menuCell = worksheet.getCell(`${col}4`);
       const jumlahCell = worksheet.getCell(
         `${String.fromCharCode(col.charCodeAt(0) + 1)}4`
@@ -242,9 +254,21 @@ export const convertServiceRequestsToExcel = async (requests) => {
         }
       });
 
+      // Format the date
+      const requestDate = new Date(request.requestDate).toLocaleString(
+        "id-ID",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }
+      );
+
       return {
         no: index + 1,
+        tanggal: requestDate,
         orderId: `#${request.id}`,
+        perihal: request.judulPekerjaan || "",
         bidang: "",
         subBidang: request.supervisor?.subBidang || "",
         order: getMealCategory(request.requiredDate),
@@ -258,6 +282,7 @@ export const convertServiceRequestsToExcel = async (requests) => {
         rsuJumlah: entityCounts.RSU.count,
         mitraMenu: Array.from(entityCounts.MITRA.menu).join(", "),
         mitraJumlah: entityCounts.MITRA.count,
+        pic: request.pic ? `${request.pic.name}/${request.pic.nomorHp}` : "",
         judulPekerjaan: request.judulPekerjaan,
       };
     });
@@ -272,7 +297,7 @@ export const convertServiceRequestsToExcel = async (requests) => {
     });
 
     // Set wrap text for menu columns
-    ["F", "H", "J", "L", "N"].forEach((col) => {
+    ["H", "J", "L", "N", "P"].forEach((col) => {
       worksheet.getColumn(col).alignment = { wrapText: true };
     });
 
@@ -678,10 +703,8 @@ export const completeRequest = async (id, userId, notes) => {
         judulPekerjaan: completedRequest.judulPekerjaan,
         subBidang: completedRequest.supervisor?.subBidang || "Kosong",
         requiredDate: completedRequest.requiredDate,
-
         dropPoint: completedRequest.dropPoint,
         totalEmployees: completedRequest.employeeOrders.length,
-
         notes: completedRequest.statusHistory[0].notes,
       }),
     });
