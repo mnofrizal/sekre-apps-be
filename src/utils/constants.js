@@ -4,19 +4,14 @@ export const APPROVAL_FLOW = {
     nextStatus: "PENDING_GA",
     rejectStatus: "REJECTED_SUPERVISOR",
   },
-  //   GA: {
-  //     nextApproval: "KITCHEN",
-  //     nextStatus: "PENDING_KITCHEN",
-  //     rejectStatus: "REJECTED_GA",
-  //   },
   GA: {
-    nextApproval: null,
+    nextApproval: "KITCHEN",
     nextStatus: "IN_PROGRESS",
     rejectStatus: "REJECTED_GA",
   },
   KITCHEN: {
     nextApproval: null,
-    nextStatus: "IN_PROGRESS",
+    nextStatus: "COMPLETED",
     rejectStatus: "REJECTED_KITCHEN",
   },
 };

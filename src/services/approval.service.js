@@ -82,9 +82,6 @@ export const verifyToken = async (token) => {
 
 export const processResponse = async (token, response, responseNote) => {
   const approvalLink = await verifyToken(token);
-
-  // console.log({approvalLink});
-
   const { type } = approvalLink;
   const flow = APPROVAL_FLOW[type];
 
@@ -92,105 +89,187 @@ export const processResponse = async (token, response, responseNote) => {
     throw new ApiError(400, "Invalid approval type");
   }
 
-  return prisma.$transaction(async (prisma) => {
-    // Mark current approval link as used
-    const updatedLink = await prisma.approvalLink.update({
-      where: { token },
-      data: {
-        isUsed: true,
-        response,
-        responseNote,
-        respondedAt: new Date(),
-      },
+  let result;
+  const newToken = generateToken();
+  let newStatus;
+
+  try {
+    // Database transaction
+    result = await prisma.$transaction(async (prisma) => {
+      // Mark current approval link as used
+      const updatedLink = await prisma.approvalLink.update({
+        where: { token },
+        data: {
+          isUsed: true,
+          response,
+          responseNote,
+          respondedAt: new Date(),
+        },
+      });
+
+      if (response) {
+        // Approved
+        newStatus = flow.nextStatus;
+
+        // If there's a next approval stage, create its approval link
+        if (flow.nextApproval) {
+          const expiresAt = new Date();
+          expiresAt.setHours(expiresAt.getHours() + 24);
+
+          await prisma.approvalLink.create({
+            data: {
+              token: newToken,
+              type: flow.nextApproval,
+              requestId: approvalLink.requestId,
+              expiresAt,
+            },
+          });
+        }
+      } else {
+        // Rejected
+        newStatus = flow.rejectStatus;
+      }
+
+      // Update request status
+      const updatedRequest = await prisma.serviceRequest.update({
+        where: { id: approvalLink.requestId },
+        data: {
+          status: newStatus,
+          statusHistory: {
+            create: {
+              status: newStatus,
+              changedBy: type,
+              notes:
+                responseNote ||
+                `${response ? "Approved" : "Rejected"} by ${type}`,
+            },
+          },
+        },
+        include: {
+          approvalLinks: true,
+          statusHistory: {
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+
+      return {
+        approvalLink: updatedLink,
+        request: updatedRequest,
+      };
     });
 
-    const newToken = generateToken();
-    let newStatus;
+    // After successful transaction, send WhatsApp notification if needed
     if (response) {
-      // Approved
-      newStatus = flow.nextStatus;
-
-      // If there's a next approval stage, create its approval link
-      if (flow.nextApproval) {
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 24);
-
-        await prisma.approvalLink.create({
-          data: {
-            token: newToken,
-            type: flow.nextApproval,
-            requestId: approvalLink.requestId,
-            expiresAt,
-          },
-        });
-
-        // Get admin user with notification enabled
-        const adminUser = await prisma.dashboardUser.findFirst({
-          where: {
-            isAdminNotify: true,
-          },
-          select: {
-            phone: true,
-          },
-        });
-
-        if (adminUser?.phone) {
-          // Fetch to send meal message
-          const response = await fetch(`${WA_URL}/api/messages/confirm-to-ga`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+      if (flow.nextApproval === "GA") {
+        try {
+          // Get admin group ID
+          const adminGroup = await prisma.group.findFirst({
+            where: {
+              type: "ADMIN",
             },
-            body: JSON.stringify({
-              id: approvalLink.request.id,
-              phone: adminUser.phone,
-              judulPekerjaan: approvalLink.request.judulPekerjaan,
-              subBidang: approvalLink.request.supervisor?.subBidang || "Kosong",
-              requiredDate: approvalLink.request.requiredDate,
-              requestDate: approvalLink.request.requestDate,
-              dropPoint: approvalLink.request.dropPoint,
-              totalEmployees: approvalLink.request.employeeOrders.length,
-              approvalToken: newToken,
-            }),
+            select: {
+              groupId: true,
+            },
           });
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+
+          // Only send WhatsApp notification if admin group exists
+          if (adminGroup) {
+            console.log(
+              "Sending WhatsApp notification to admin group:",
+              adminGroup.groupId
+            );
+            const notifResponse = await fetch(
+              `${WA_URL}/api/messages/confirm-to-ga`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: approvalLink.request.id,
+                  groupId: adminGroup.groupId,
+                  judulPekerjaan: approvalLink.request.judulPekerjaan,
+                  subBidang:
+                    approvalLink.request.supervisor?.subBidang || "Kosong",
+                  requiredDate: approvalLink.request.requiredDate,
+                  requestDate: approvalLink.request.requestDate,
+                  dropPoint: approvalLink.request.dropPoint,
+                  totalEmployees: approvalLink.request.employeeOrders.length,
+                  approvalToken: newToken,
+                }),
+              }
+            );
+            if (!notifResponse.ok) {
+              console.error(
+                "Failed to send WhatsApp notification:",
+                notifResponse.status
+              );
+            }
           }
+        } catch (error) {
+          console.error("Error sending WhatsApp notification:", error);
+        }
+      } else if (flow.nextApproval === "KITCHEN") {
+        // This is the end of approval flow, send notification to kitchen
+        try {
+          // Get kitchen group ID
+          const kitchenGroup = await prisma.group.findFirst({
+            where: {
+              type: "KITCHEN",
+            },
+            select: {
+              groupId: true,
+            },
+          });
+
+          // Only send WhatsApp notification if kitchen group exists
+          if (kitchenGroup) {
+            console.log("Sending WhatsApp notification to kitchen");
+            const notifResponse = await fetch(
+              `${WA_URL}/api/messages/confirm-to-kitchen`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: approvalLink.request.id,
+                  groupId: kitchenGroup.groupId,
+                  judulPekerjaan: approvalLink.request.judulPekerjaan,
+                  subBidang:
+                    approvalLink.request.supervisor?.subBidang || "Kosong",
+                  requiredDate: approvalLink.request.requiredDate,
+                  requestDate: approvalLink.request.requestDate,
+                  dropPoint: approvalLink.request.dropPoint,
+                  totalEmployees: approvalLink.request.employeeOrders.length,
+                  approvalToken: newToken,
+                }),
+              }
+            );
+            if (!notifResponse.ok) {
+              const errorData = await notifResponse.text();
+              console.error(
+                "Failed to send WhatsApp notification to kitchen:",
+                notifResponse.status,
+                errorData
+              );
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Error sending WhatsApp notification to kitchen:",
+            error.message || error
+          );
         }
       }
-    } else {
-      // Rejected
-      newStatus = flow.rejectStatus;
     }
 
-    // Update request status
-    const updatedRequest = await prisma.serviceRequest.update({
-      where: { id: approvalLink.requestId },
-      data: {
-        status: newStatus,
-        statusHistory: {
-          create: {
-            status: newStatus,
-            changedBy: type,
-            notes:
-              responseNote ||
-              `${response ? "Approved" : "Rejected"} by ${type}`,
-          },
-        },
-      },
-      include: {
-        approvalLinks: true,
-        statusHistory: {
-          orderBy: { createdAt: "desc" },
-        },
-      },
-    });
-
-    return {
-      approvalLink: updatedLink,
-      request: updatedRequest,
-    };
-  });
+    return result;
+  } catch (error) {
+    console.error("Error in processResponse:", error);
+    throw error;
+  }
 };
 
 export const deleteApprovalLink = async (requestId) => {

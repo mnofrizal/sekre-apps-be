@@ -406,104 +406,121 @@ export const getServiceRequestById = async (id) => {
 
 export const createServiceRequest = async (requestData, userId) => {
   const { employeeOrders, ...serviceRequestData } = requestData;
-
   const token = generateToken();
+  let request;
 
-  return prisma.$transaction(async (prisma) => {
-    // Create the service request with all related data
-    const request = await prisma.serviceRequest.create({
-      data: {
-        ...serviceRequestData,
-        id: token,
-        type: "MEAL",
-        status: "PENDING_SUPERVISOR",
-        handlerId: userId,
-        employeeOrders: {
-          create: employeeOrders.map((order) => ({
-            employeeName: order.employeeName,
-            entity: order.entity,
-            orderItems: {
-              create: order.items.map((item) => ({
-                menuItemId: item.menuItemId,
-                quantity: item.quantity,
-                notes: item.notes,
-              })),
+  try {
+    // Database transaction
+    request = await prisma.$transaction(async (prisma) => {
+      // Create the service request with all related data
+      const createdRequest = await prisma.serviceRequest.create({
+        data: {
+          ...serviceRequestData,
+          id: token,
+          type: "MEAL",
+          status: "PENDING_SUPERVISOR",
+          handlerId: userId,
+          employeeOrders: {
+            create: employeeOrders.map((order) => ({
+              employeeName: order.employeeName,
+              entity: order.entity,
+              orderItems: {
+                create: order.items.map((item) => ({
+                  menuItemId: item.menuItemId,
+                  quantity: item.quantity,
+                  notes: item.notes,
+                })),
+              },
+            })),
+          },
+          statusHistory: {
+            create: {
+              status: "PENDING_SUPERVISOR",
+              changedBy: userId,
+              notes: "Request created",
             },
-          })),
-        },
-        statusHistory: {
-          create: {
-            status: "PENDING_SUPERVISOR",
-            changedBy: userId,
-            notes: "Request created",
+          },
+          // Create the approval link within the same transaction
+          approvalLinks: {
+            create: {
+              token: token,
+              type: "SUPERVISOR",
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+              isUsed: false,
+            },
           },
         },
-        // Create the approval link within the same transaction
-        approvalLinks: {
-          create: {
-            token: token,
-            type: "SUPERVISOR",
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-            isUsed: false,
-          },
-        },
-      },
-      include: {
-        employeeOrders: {
-          include: {
-            orderItems: {
-              include: {
-                menuItem: true,
+        include: {
+          employeeOrders: {
+            include: {
+              orderItems: {
+                include: {
+                  menuItem: true,
+                },
               },
             },
           },
+          statusHistory: true,
+          approvalLinks: true,
         },
-        statusHistory: true,
-        approvalLinks: true,
-      },
-    });
-
-    console.log({ request });
-
-    // Get admin user with notification enabled
-    const adminUser = await prisma.dashboardUser.findFirst({
-      where: {
-        isAdminNotify: true,
-        phone: {
-          not: null,
-        },
-      },
-      select: {
-        phone: true,
-      },
-    });
-
-    if (adminUser) {
-      // Fetch to send meal message
-      const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: request.id,
-          phone: adminUser.phone,
-          judulPekerjaan: request.judulPekerjaan,
-          subBidang: request.supervisor?.subBidang || "Kosong",
-          requiredDate: request.requiredDate,
-          requestDate: request.requestDate,
-          dropPoint: request.dropPoint,
-          totalEmployees: request.employeeOrders.length,
-          approvalToken: token,
-        }),
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+      return createdRequest;
+    });
+
+    try {
+      // Get admin group ID
+      const adminGroup = await prisma.group.findFirst({
+        where: {
+          type: "ADMIN",
+        },
+        select: {
+          groupId: true,
+        },
+      });
+
+      // Only send WhatsApp notification if admin group exists
+      if (adminGroup) {
+        console.log(
+          "Sending WhatsApp notification to admin group:",
+          adminGroup.groupId
+        );
+        const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: request.id,
+            // groupId: adminGroup.groupId,
+            phone: "6287733760363", //EDIT THIS TO ASMAN PHONE NUMBER
+            judulPekerjaan: request.judulPekerjaan,
+            subBidang: request.supervisor?.subBidang || "Kosong",
+            requiredDate: request.requiredDate,
+            requestDate: request.requestDate,
+            dropPoint: request.dropPoint,
+            totalEmployees: request.employeeOrders.length,
+            approvalToken: token,
+          }),
+        });
+        if (!response.ok) {
+          console.error(
+            "Failed to send WhatsApp notification:",
+            response.status
+          );
+        }
+      } else {
+        console.log("No admin group found, skipping WhatsApp notification");
       }
+    } catch (error) {
+      console.error("Error sending WhatsApp notification:", error);
     }
 
     return request;
-  });
+  } catch (error) {
+    console.error("Error in createServiceRequest:", error);
+    throw error;
+  }
 };
 
 export const updateServiceRequest = async (id, requestData) => {
