@@ -43,6 +43,9 @@ router.post(
   approvalController.respondToRequest
 );
 
+// Process order by kitchen
+router.post("/kitchen/:requestId", approvalController.processOrderByKitchen);
+s;
 // Protected routes
 router.use(auth);
 router.post(
@@ -52,8 +55,5 @@ router.post(
 );
 router.get("/:requestId", approvalController.getApprovalLink);
 router.delete("/:requestId", approvalController.deleteApprovalLink);
-
-// Process order by kitchen
-router.post("/kitchen/:requestId", approvalController.processOrderByKitchen);
 
 export default router;
