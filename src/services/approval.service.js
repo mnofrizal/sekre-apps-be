@@ -3,7 +3,21 @@ import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { APPROVAL_FLOW, WA_URL } from "../utils/constants.js";
 import { generateToken } from "../utils/helpers.js";
-import fs from "fs";
+import sharp from "sharp";
+
+const compressAndConvertImage = async (imagePath) => {
+  try {
+    const compressedImageBuffer = await sharp(imagePath)
+      .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    return compressedImageBuffer.toString("base64");
+  } catch (error) {
+    console.error("Error compressing image:", error);
+    return null;
+  }
+};
 
 export const createApprovalLink = async (requestId, type, expiresIn = 24) => {
   const request = await prisma.serviceRequest.findUnique({
@@ -309,9 +323,7 @@ export const processResponse = async (token, response, responseNote, image) => {
                   requiredDate: approvalLink.request.requiredDate,
                   dropPoint: approvalLink.request.dropPoint,
                   pic: approvalLink.request.pic.name,
-                  image: image
-                    ? fs.readFileSync(image).toString("base64")
-                    : null,
+                  image: image ? await compressAndConvertImage(image) : null,
                 }),
               }
             );
