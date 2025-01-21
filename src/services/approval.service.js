@@ -344,6 +344,96 @@ export const processResponse = async (token, response, responseNote, image) => {
           );
         }
       }
+    } else {
+      // Send reject notification if response is false
+      try {
+        if (approvalLink.request.status === "PENDING_SUPERVISOR") {
+          // For PENDING_SUPERVISOR, send to ASMAN's phone
+          console.log("Sending reject notification to ASMAN");
+          const notifResponse = await fetch(
+            `${WA_URL}/api/messages/send-reject-notif`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                id: approvalLink.request.id,
+                phone: "6287733760363", // ASMAN phone number
+                judulPekerjaan: approvalLink.request.judulPekerjaan,
+                subBidang:
+                  approvalLink.request.supervisor?.subBidang || "Kosong",
+                totalEmployees: approvalLink.request.employeeOrders.length,
+                requiredDate: approvalLink.request.requiredDate,
+                dropPoint: approvalLink.request.dropPoint,
+                pic: approvalLink.request.pic.name,
+                rejectedBy: type,
+                rejectionNote: responseNote || "No reason provided",
+              }),
+            }
+          );
+
+          if (!notifResponse.ok) {
+            const errorData = await notifResponse.text();
+            console.error(
+              "Failed to send reject notification to ASMAN:",
+              notifResponse.status,
+              errorData
+            );
+          }
+        } else if (approvalLink.request.status === "PENDING_GA") {
+          // For PENDING_GA, send to admin group
+          const adminGroup = await prisma.group.findFirst({
+            where: {
+              type: "ADMIN",
+            },
+            select: {
+              groupId: true,
+            },
+          });
+
+          if (adminGroup) {
+            console.log("Sending reject notification to admin group");
+            const notifResponse = await fetch(
+              `${WA_URL}/api/messages/send-reject-notif`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: approvalLink.request.id,
+                  groupId: adminGroup.groupId,
+                  phone: "6281770099900", // ASMAN phone number
+                  judulPekerjaan: approvalLink.request.judulPekerjaan,
+                  subBidang:
+                    approvalLink.request.supervisor?.subBidang || "Kosong",
+                  totalEmployees: approvalLink.request.employeeOrders.length,
+                  requiredDate: approvalLink.request.requiredDate,
+                  dropPoint: approvalLink.request.dropPoint,
+                  pic: approvalLink.request.pic.name,
+                  rejectedBy: type,
+                  rejectionNote: responseNote || "No reason provided",
+                }),
+              }
+            );
+
+            if (!notifResponse.ok) {
+              const errorData = await notifResponse.text();
+              console.error(
+                "Failed to send reject notification to admin group:",
+                notifResponse.status,
+                errorData
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Error sending reject notification:",
+          error.message || error
+        );
+      }
     }
 
     return result;

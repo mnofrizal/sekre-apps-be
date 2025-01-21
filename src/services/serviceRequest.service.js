@@ -493,7 +493,7 @@ export const createServiceRequest = async (requestData, userId) => {
           body: JSON.stringify({
             id: request.id,
             // groupId: adminGroup.groupId,
-            phone: "6281770099900", //EDIT THIS TO ASMAN PHONE NUMBER
+            phone: "6281770099900", // ASMAN phone number
             judulPekerjaan: request.judulPekerjaan,
             subBidang: request.supervisor?.subBidang || "Kosong",
             requiredDate: request.requiredDate,
