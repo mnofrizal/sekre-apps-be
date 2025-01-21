@@ -42,10 +42,9 @@ router.post(
   validateRequest(approvalValidation.respond),
   approvalController.respondToRequest
 );
-
 // Process order by kitchen
 router.post("/kitchen/:requestId", approvalController.processOrderByKitchen);
-s;
+
 // Protected routes
 router.use(auth);
 router.post(
