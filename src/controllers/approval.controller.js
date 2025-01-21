@@ -51,11 +51,15 @@ export const verifyApprovalToken = async (req, res, next) => {
 export const respondToRequest = async (req, res, next) => {
   try {
     const { token } = req.params;
-    const { response, responseNote } = req.body;
+    const { response: responseStr, responseNote } = req.body;
+    const image = req.file?.path; // Get the uploaded image path from multer
+    // Convert string response to boolean
+    const response = responseStr === "true";
     const result = await approvalService.processResponse(
       token,
       response,
-      responseNote
+      responseNote,
+      image
     );
     res.json(ApiResponse.success("Response processed successfully", result));
   } catch (error) {
@@ -71,6 +75,18 @@ export const deleteApprovalLink = async (req, res, next) => {
       throw new ApiError(404, "Approval link not found");
     }
     res.json(ApiResponse.success("Approval link deleted successfully", null));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const processOrderByKitchen = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const result = await approvalService.processOrderByKitchen(requestId);
+    res.json(
+      ApiResponse.success("Order processed by kitchen successfully", result)
+    );
   } catch (error) {
     next(error);
   }

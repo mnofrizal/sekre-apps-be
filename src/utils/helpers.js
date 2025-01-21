@@ -1,11 +1,8 @@
-import { randomBytes } from "crypto";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 
 export const generateToken = () => {
-  return nanoid(
-    6,
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-  ).toUpperCase();
+  const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6);
+  return nanoid();
 };
 
 export const getMealCategory = (date) => {

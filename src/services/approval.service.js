@@ -3,6 +3,7 @@ import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { APPROVAL_FLOW, WA_URL } from "../utils/constants.js";
 import { generateToken } from "../utils/helpers.js";
+import fs from "fs";
 
 export const createApprovalLink = async (requestId, type, expiresIn = 24) => {
   const request = await prisma.serviceRequest.findUnique({
@@ -80,10 +81,12 @@ export const verifyToken = async (token) => {
   return approvalLink;
 };
 
-export const processResponse = async (token, response, responseNote) => {
+export const processResponse = async (token, response, responseNote, image) => {
   const approvalLink = await verifyToken(token);
   const { type } = approvalLink;
   const flow = APPROVAL_FLOW[type];
+
+  console.log({ image });
 
   if (!flow) {
     throw new ApiError(400, "Invalid approval type");
@@ -104,6 +107,7 @@ export const processResponse = async (token, response, responseNote) => {
           response,
           responseNote,
           respondedAt: new Date(),
+          image: image || null, // Add image path if provided
         },
       });
 
@@ -196,14 +200,19 @@ export const processResponse = async (token, response, responseNote) => {
                   requestDate: approvalLink.request.requestDate,
                   dropPoint: approvalLink.request.dropPoint,
                   totalEmployees: approvalLink.request.employeeOrders.length,
+                  employeeOrders: approvalLink.request.employeeOrders,
+                  pic: approvalLink.request.pic.name,
+                  picPhone: approvalLink.request.pic.nomorHp,
                   approvalToken: newToken,
                 }),
               }
             );
             if (!notifResponse.ok) {
+              const errorMessage = await notifResponse.text();
               console.error(
                 "Failed to send WhatsApp notification:",
-                notifResponse.status
+                notifResponse.status,
+                errorMessage
               );
             }
           }
@@ -243,6 +252,9 @@ export const processResponse = async (token, response, responseNote) => {
                   requestDate: approvalLink.request.requestDate,
                   dropPoint: approvalLink.request.dropPoint,
                   totalEmployees: approvalLink.request.employeeOrders.length,
+                  employeeOrders: approvalLink.request.employeeOrders,
+                  pic: approvalLink.request.pic.name,
+                  picPhone: approvalLink.request.pic.nomorHp,
                   approvalToken: newToken,
                 }),
               }
@@ -259,6 +271,63 @@ export const processResponse = async (token, response, responseNote) => {
         } catch (error) {
           console.error(
             "Error sending WhatsApp notification to kitchen:",
+            error.message || error
+          );
+        }
+      } else if (
+        !flow.nextApproval ||
+        (flow.nextApproval !== "GA" && flow.nextApproval !== "KITCHEN")
+      ) {
+        // Send finish notification when there's no next approval or when next approval is not GA/KITCHEN
+        try {
+          // Get notification group ID
+          const notifGroup = await prisma.group.findFirst({
+            where: {
+              type: "NOTIF",
+            },
+            select: {
+              groupId: true,
+            },
+          });
+
+          if (notifGroup) {
+            console.log("Sending finish notification to notification group");
+            const notifResponse = await fetch(
+              `${WA_URL}/api/messages/send-finish-notif`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: approvalLink.request.id,
+                  groupId: notifGroup.groupId,
+                  judulPekerjaan: approvalLink.request.judulPekerjaan,
+                  subBidang:
+                    approvalLink.request.supervisor?.subBidang || "Kosong",
+                  totalEmployees: approvalLink.request.employeeOrders.length,
+                  requiredDate: approvalLink.request.requiredDate,
+                  dropPoint: approvalLink.request.dropPoint,
+                  pic: approvalLink.request.pic.name,
+                  image: image
+                    ? fs.readFileSync(image).toString("base64")
+                    : null,
+                }),
+              }
+            );
+
+            if (!notifResponse.ok) {
+              const errorData = await notifResponse.text();
+              console.error(
+                "Failed to send finish notification:",
+                notifResponse.status,
+                errorData
+              );
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Error sending finish notification:",
             error.message || error
           );
         }
@@ -282,6 +351,107 @@ export const deleteApprovalLink = async (requestId) => {
     if (error.code === "P2025") {
       return false;
     }
+    throw error;
+  }
+};
+
+export const processOrderByKitchen = async (requestId) => {
+  try {
+    // Find the service request
+    const request = await prisma.serviceRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        employeeOrders: {
+          include: {
+            orderItems: {
+              include: {
+                menuItem: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new ApiError(404, "Service request not found");
+    }
+
+    if (request.status !== "PENDING_KITCHEN") {
+      throw new ApiError(400, "Order is not in PENDING_KITCHEN status");
+    }
+
+    // Update service request status to IN_PROGRESS
+    const updatedRequest = await prisma.serviceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: "IN_PROGRESS",
+      },
+      include: {
+        employeeOrders: {
+          include: {
+            orderItems: {
+              include: {
+                menuItem: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Send notification to notification group about kitchen starting to process the order
+    try {
+      // Get notification group ID
+      const notifGroup = await prisma.group.findFirst({
+        where: {
+          type: "NOTIF",
+        },
+        select: {
+          groupId: true,
+        },
+      });
+
+      if (notifGroup) {
+        const notifResponse = await fetch(
+          `${WA_URL}/api/messages/send-start-notif`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: request.id,
+              groupId: notifGroup.groupId,
+              judulPekerjaan: request.judulPekerjaan,
+              subBidang: request.supervisor?.subBidang,
+              totalEmployees: request.employeeOrders.length,
+              requiredDate: request.requiredDate,
+              dropPoint: request.dropPoint,
+              pic: request.pic.name,
+            }),
+          }
+        );
+
+        if (!notifResponse.ok) {
+          const errorData = await notifResponse.text();
+          console.error(
+            "Failed to send WhatsApp notification to notification group:",
+            notifResponse.status,
+            errorData
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Error sending WhatsApp notification to notification group:",
+        error.message || error
+      );
+    }
+
+    return updatedRequest;
+  } catch (error) {
+    console.error("Error in processOrderByKitchen:", error);
     throw error;
   }
 };

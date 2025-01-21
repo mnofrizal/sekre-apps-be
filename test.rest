@@ -207,7 +207,7 @@ Authorization: Bearer {{authToken}}
     "employeeOrders": [
         {
             "employeeName": "John Employee",
-            "entity": "PLN IP",
+            "entity": "PLNIP",
             "items": [
                 {
                     "menuItemId": "{{createMenu.response.body.data.id}}",

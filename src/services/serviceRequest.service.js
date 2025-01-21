@@ -500,13 +500,18 @@ export const createServiceRequest = async (requestData, userId) => {
             requestDate: request.requestDate,
             dropPoint: request.dropPoint,
             totalEmployees: request.employeeOrders.length,
+            employeeOrders: request.employeeOrders,
+            pic: request.pic.name,
+            picPhone: request.pic.nomorHp,
             approvalToken: token,
           }),
         });
         if (!response.ok) {
+          const errorMessage = await response.text();
           console.error(
             "Failed to send WhatsApp notification:",
-            response.status
+            response.status,
+            errorMessage
           );
         }
       } else {
