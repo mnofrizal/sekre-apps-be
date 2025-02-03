@@ -18,8 +18,12 @@ export const getEmployeeById = async (id) => {
   });
 };
 
-export const getAllSubBidang = async () => {
+export const getAllSubBidang = async (role, username) => {
+  // Define where clause based on role
+  const whereClause = role === "SECRETARY" ? { sekretaris: username } : {};
+
   const employees = await prisma.employee.findMany({
+    where: whereClause,
     select: {
       id: true,
       nama: true,
@@ -152,6 +156,7 @@ export const importEmployeesService = async (file) => {
     const data = XLSX.utils.sheet_to_json(worksheet, {
       header: [
         "bagian",
+        "sekretaris",
         "name",
         "nip",
         "subBidang",
@@ -183,6 +188,7 @@ export const importEmployeesService = async (file) => {
 
       return {
         nip: String(row.nip || "").trim(),
+        sekretaris: String(row.sekretaris || "").trim(),
         nama: String(row.name || "").trim(),
         jabatan: String(row.jabatan || "").trim(),
         bagian: String(row.bagian || "").trim(),

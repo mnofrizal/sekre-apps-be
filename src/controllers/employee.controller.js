@@ -27,7 +27,11 @@ export const getEmployeeById = async (req, res, next) => {
 
 export const getAllSubBidang = async (req, res, next) => {
   try {
-    const subBidangList = await employeeService.getAllSubBidang();
+    // Pass user's role and username from DashboardUser
+    const subBidangList = await employeeService.getAllSubBidang(
+      req.user.role,
+      req.user.username
+    );
     res.json(
       ApiResponse.success(
         "SubBidang list retrieved successfully",

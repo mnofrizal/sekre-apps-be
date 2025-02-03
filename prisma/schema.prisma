@@ -48,17 +48,18 @@ enum ApprovalType {
 
 // Updated Employee model
 model Employee {
-  id        String   @id @default(cuid())
-  nip       String   @unique
-  nama      String
-  jabatan   String
-  bagian    String
-  subBidang String
-  email     String?  @unique
-  nomorHp   String?
-  isAsman   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  nip        String   @unique
+  nama       String
+  jabatan    String
+  bagian     String
+  subBidang  String
+  email      String?  @unique
+  nomorHp    String?
+  sekretaris String?
+  isAsman    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // ======= USER MANAGEMENT =======
