@@ -406,6 +406,14 @@ export const getServiceRequestById = async (id) => {
 
 export const createServiceRequest = async (requestData, userId) => {
   const { employeeOrders, ...serviceRequestData } = requestData;
+
+  // Ensure dates are properly parsed
+  const parsedData = {
+    ...serviceRequestData,
+    requestDate: new Date(serviceRequestData.requestDate),
+    requiredDate: new Date(serviceRequestData.requiredDate),
+  };
+
   const token = generateToken();
   let request;
 
@@ -415,7 +423,7 @@ export const createServiceRequest = async (requestData, userId) => {
       // Create the service request with all related data
       const createdRequest = await prisma.serviceRequest.create({
         data: {
-          ...serviceRequestData,
+          ...parsedData,
           id: token,
           type: "MEAL",
           status: "PENDING_SUPERVISOR",
