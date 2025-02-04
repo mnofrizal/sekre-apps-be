@@ -406,26 +406,6 @@ export const getServiceRequestById = async (id) => {
 
 export const createServiceRequest = async (requestData, userId) => {
   const { employeeOrders, ...serviceRequestData } = requestData;
-
-  console.log("Service - Original dates:", {
-    requestDate: serviceRequestData.requestDate,
-    requiredDate: serviceRequestData.requiredDate,
-  });
-
-  // Ensure dates are properly parsed
-  const parsedData = {
-    ...serviceRequestData,
-    requestDate: new Date(serviceRequestData.requestDate),
-    requiredDate: new Date(serviceRequestData.requiredDate),
-  };
-
-  console.log("Service - Parsed dates:", {
-    requestDate: parsedData.requestDate,
-    requiredDate: parsedData.requiredDate,
-  });
-
-  console.log({ parsedData });
-
   const token = generateToken();
   let request;
 
@@ -435,7 +415,7 @@ export const createServiceRequest = async (requestData, userId) => {
       // Create the service request with all related data
       const createdRequest = await prisma.serviceRequest.create({
         data: {
-          ...parsedData,
+          ...serviceRequestData,
           id: token,
           type: "MEAL",
           status: "PENDING_SUPERVISOR",
@@ -499,7 +479,16 @@ export const createServiceRequest = async (requestData, userId) => {
         },
       });
 
-      console.log(request.requiredDate);
+      // Get the dates from database
+      const requestDates = await prisma.serviceRequest.findUnique({
+        where: { id: request.id },
+        select: {
+          requiredDate: true,
+          requestDate: true,
+        },
+      });
+
+      console.log(requestDates.requiredDate);
 
       // Only send WhatsApp notification if admin group exists
       if (adminGroup) {
@@ -518,8 +507,8 @@ export const createServiceRequest = async (requestData, userId) => {
             phone: `62${request.supervisor.nomorHp}`, //EDIT THIS TO ASMAN PHONE NUMBER
             judulPekerjaan: request.judulPekerjaan,
             subBidang: request.supervisor?.subBidang || "Kosong",
-            requiredDate: request.requiredDate,
-            requestDate: request.requestDate,
+            requiredDate: requestDates.requiredDate,
+            requestDate: requestDates.requestDate,
             dropPoint: request.dropPoint,
             totalEmployees: request.employeeOrders.length,
             employeeOrders: request.employeeOrders,

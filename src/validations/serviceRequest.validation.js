@@ -33,14 +33,8 @@ export const serviceRequestValidation = {
     type: Joi.string()
       .valid(...Object.values(ServiceType))
       .required(),
-    requestDate: Joi.date().iso().invalid("").required().messages({
-      "string.empty": "Request date cannot be empty",
-      "date.base": "Request date must be a valid ISO date string",
-    }),
-    requiredDate: Joi.date().iso().invalid("").required().messages({
-      "string.empty": "Required date cannot be empty",
-      "date.base": "Required date must be a valid ISO date string",
-    }),
+    requestDate: Joi.date().required(),
+    requiredDate: Joi.date().required(),
     dropPoint: Joi.string().required(),
     supervisor: supervisorSchema.required(),
     pic: picSchema.required(),

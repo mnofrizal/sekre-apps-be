@@ -51,23 +51,10 @@ export const getServiceRequestById = async (req, res, next) => {
 
 export const createServiceRequest = async (req, res, next) => {
   try {
-    // Better date logging
-    console.log("Raw request body:", {
-      ...req.body,
-      requestDate: new Date(req.body.requestDate),
-      requiredDate: new Date(req.body.requiredDate),
-    });
-
-    console.log("Request date value:", req.body.requestDate);
-    console.log("Required date value:", req.body.requiredDate);
-    console.log("Request date parsed:", new Date(req.body.requestDate));
-    console.log("Required date parsed:", new Date(req.body.requiredDate));
-
     const request = await serviceRequestService.createServiceRequest(
       req.body,
       req.user.id
     );
-    console.log("request adalah", req.body);
     res
       .status(201)
       .json(
