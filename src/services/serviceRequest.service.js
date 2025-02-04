@@ -479,6 +479,8 @@ export const createServiceRequest = async (requestData, userId) => {
         },
       });
 
+      console.log(request.requiredDate);
+
       // Only send WhatsApp notification if admin group exists
       if (adminGroup) {
         console.log(
