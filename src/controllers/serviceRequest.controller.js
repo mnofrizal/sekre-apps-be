@@ -51,10 +51,17 @@ export const getServiceRequestById = async (req, res, next) => {
 
 export const createServiceRequest = async (req, res, next) => {
   try {
-    console.log("Raw request body:", req.body);
-    console.log("Request date type:", typeof req.body.requestDate);
-    console.log("Required date type:", typeof req.body.requiredDate);
-    console.log("Full request:", JSON.stringify(req.body, null, 2));
+    // Better date logging
+    console.log("Raw request body:", {
+      ...req.body,
+      requestDate: new Date(req.body.requestDate),
+      requiredDate: new Date(req.body.requiredDate),
+    });
+
+    console.log("Request date value:", req.body.requestDate);
+    console.log("Required date value:", req.body.requiredDate);
+    console.log("Request date parsed:", new Date(req.body.requestDate));
+    console.log("Required date parsed:", new Date(req.body.requiredDate));
 
     const request = await serviceRequestService.createServiceRequest(
       req.body,

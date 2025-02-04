@@ -407,12 +407,22 @@ export const getServiceRequestById = async (id) => {
 export const createServiceRequest = async (requestData, userId) => {
   const { employeeOrders, ...serviceRequestData } = requestData;
 
+  console.log("Service - Original dates:", {
+    requestDate: serviceRequestData.requestDate,
+    requiredDate: serviceRequestData.requiredDate,
+  });
+
   // Ensure dates are properly parsed
   const parsedData = {
     ...serviceRequestData,
     requestDate: new Date(serviceRequestData.requestDate),
     requiredDate: new Date(serviceRequestData.requiredDate),
   };
+
+  console.log("Service - Parsed dates:", {
+    requestDate: parsedData.requestDate,
+    requiredDate: parsedData.requiredDate,
+  });
 
   console.log({ parsedData });
 
