@@ -266,7 +266,7 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 ### Verify approval token
-GET {{baseUrl}}/requests/approval/verify/ae9fbd27b50c7d8cd75ce3d29c1926b5f8e2147ba97055319ce073c5f910c49f
+GET {{baseUrl}}/requests/approval/verify/ZAS0AU
 Content-Type: {{contentType}}
 
 ### Respond to approval request (Approve)

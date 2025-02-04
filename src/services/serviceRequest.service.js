@@ -271,7 +271,7 @@ export const convertServiceRequestsToExcel = async (requests) => {
         perihal: request.judulPekerjaan || "",
         bidang: "",
         subBidang: request.supervisor?.subBidang || "",
-        order: getMealCategory(request.requiredDate),
+        order: request.category || "",
         plnipMenu: Array.from(entityCounts.PLNIP.menu).join(", "),
         plnipJumlah: entityCounts.PLNIP.count,
         ipsMenu: Array.from(entityCounts.IPS.menu).join(", "),
@@ -479,16 +479,7 @@ export const createServiceRequest = async (requestData, userId) => {
         },
       });
 
-      // Get the dates from database
-      const requestDates = await prisma.serviceRequest.findUnique({
-        where: { id: request.id },
-        select: {
-          requiredDate: true,
-          requestDate: true,
-        },
-      });
-
-      console.log(requestDates.requiredDate);
+      console.log(request.requiredDate);
 
       // Only send WhatsApp notification if admin group exists
       if (adminGroup) {
@@ -507,8 +498,9 @@ export const createServiceRequest = async (requestData, userId) => {
             phone: `62${request.supervisor.nomorHp}`, //EDIT THIS TO ASMAN PHONE NUMBER
             judulPekerjaan: request.judulPekerjaan,
             subBidang: request.supervisor?.subBidang || "Kosong",
-            requiredDate: requestDates.requiredDate,
-            requestDate: requestDates.requestDate,
+            requiredDate: request.requiredDate,
+            requestDate: request.requestDate,
+            category: request.category,
             dropPoint: request.dropPoint,
             totalEmployees: request.employeeOrders.length,
             employeeOrders: request.employeeOrders,
@@ -736,6 +728,7 @@ export const completeRequest = async (id, userId, notes) => {
         judulPekerjaan: completedRequest.judulPekerjaan,
         subBidang: completedRequest.supervisor?.subBidang || "Kosong",
         requiredDate: completedRequest.requiredDate,
+        category: completedRequest.category,
         dropPoint: completedRequest.dropPoint,
         totalEmployees: completedRequest.employeeOrders.length,
         notes: completedRequest.statusHistory[0].notes,

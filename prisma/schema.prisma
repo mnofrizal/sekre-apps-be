@@ -102,6 +102,7 @@ model ServiceRequest {
   status         RequestStatus @default(PENDING_SUPERVISOR)
   requestDate    DateTime
   requiredDate   DateTime
+  category       String?
   dropPoint      String
   supervisor     Json
   pic            Json
