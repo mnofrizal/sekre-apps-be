@@ -55,6 +55,7 @@ export const createServiceRequest = async (req, res, next) => {
       req.body,
       req.user.id
     );
+    console.log("request adalah", req.body);
     res
       .status(201)
       .json(

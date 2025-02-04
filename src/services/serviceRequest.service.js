@@ -414,6 +414,8 @@ export const createServiceRequest = async (requestData, userId) => {
     requiredDate: new Date(serviceRequestData.requiredDate),
   };
 
+  console.log({ parsedData });
+
   const token = generateToken();
   let request;
 
