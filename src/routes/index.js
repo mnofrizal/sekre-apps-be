@@ -6,6 +6,7 @@ import employeeRoutes from "./employee.routes.js";
 import serviceRequestRoutes from "./serviceRequest.routes.js";
 import approvalRoutes from "./approval.routes.js";
 import groupsNotifRoutes from "./groupsNotif.routes.js";
+import kitchenRoutes from "./kitchen.routes.js";
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.use("/service-requests", serviceRequestRoutes);
 router.use("/requests/approval", approvalRoutes);
 router.use("/requests/monitoring", serviceRequestRoutes);
 router.use("/notif/groups", groupsNotifRoutes);
+router.use("/kitchen", kitchenRoutes);
 
 export default router;

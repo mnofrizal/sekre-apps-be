@@ -1,0 +1,129 @@
+@baseUrl = http://localhost:5200/api
+@contentType = application/json
+@authToken = {{login.response.body.data.accessToken}}
+
+### ==================== Authentication ====================
+
+### Login as kitchen staff
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "admin@example.com",
+    "password": "password123"
+}
+
+### ==================== Kitchen Routes ====================
+
+### Get all kitchen orders (MEAL type service requests)
+GET {{baseUrl}}/kitchen/orders
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get kitchen order statistics
+GET {{baseUrl}}/kitchen/orders/stats
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get pending kitchen orders
+GET {{baseUrl}}/kitchen/orders/pending
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get in-progress kitchen orders
+GET {{baseUrl}}/kitchen/orders/inprogress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get completed kitchen orders
+GET {{baseUrl}}/kitchen/orders/completed
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get specific kitchen order
+GET {{baseUrl}}/kitchen/orders/RX19RJ
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Start working on order (Change status to IN_PROGRESS)
+POST {{baseUrl}}/kitchen/orders/RX19RJ/progress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Complete an order
+POST {{baseUrl}}/kitchen/orders/RX19RJ/complete
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Update order status
+PATCH {{baseUrl}}/kitchen/orders/order-id-here/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "REJECTED_KITCHEN",
+    "notes": "Ingredients not available"
+}
+
+### ==================== Kitchen Statistics ====================
+
+### Get daily statistics
+GET {{baseUrl}}/kitchen/orders/stats/daily
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get top ordered items today
+GET {{baseUrl}}/kitchen/orders/stats/items
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### ==================== Kitchen Order Counts ====================
+
+### Get pending orders count
+GET {{baseUrl}}/kitchen/orders/count/pending
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get in-progress orders count
+GET {{baseUrl}}/kitchen/orders/count/inprogress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get completed orders count
+GET {{baseUrl}}/kitchen/orders/count/completed
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### ==================== Example Flow ====================
+
+### 1. Get pending orders to see new requests
+GET {{baseUrl}}/kitchen/orders/pending
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### 2. Start working on a specific order
+# @name startOrder
+POST {{baseUrl}}/kitchen/orders/order-id-here/progress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### 3. Check in-progress orders
+GET {{baseUrl}}/kitchen/orders/inprogress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### 4. Complete the order
+POST {{baseUrl}}/kitchen/orders/order-id-here/complete
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### 5. Verify order is in completed list
+GET {{baseUrl}}/kitchen/orders/completed
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### 6. Check daily statistics
+GET {{baseUrl}}/kitchen/orders/stats/daily
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}

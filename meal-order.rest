@@ -1,0 +1,87 @@
+@baseUrl = http://localhost:5200/api
+@contentType = application/json
+@authToken = {{login.response.body.data.accessToken}}
+
+### Login as admin
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "admin@example.com",
+    "password": "password123"
+}
+
+### Create a test meal request
+# @name createRequest
+POST {{baseUrl}}/service-requests
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "judulPekerjaan": "Test Kitchen Order",
+    "type": "MEAL",
+    "requestDate": "{{$datetime iso8601}}",
+    "requiredDate": "{{$datetime offset 1 d}}",
+    "category": "SARAPAN",
+    "dropPoint": "Test Location",
+    "supervisor": {
+        "name": "Test Supervisor",
+        "subBidang": "Test Department",
+        "nomorHp": "123456789"
+    },
+    "pic": {
+        "name": "Test PIC",
+        "nomorHp": "987654321"
+    },
+    "employeeOrders": [
+        {
+            "employeeName": "Test Employee",
+            "entity": "PLNIP",
+            "items": [
+                {
+                    "menuItemId": "clrb5op8u0000v9j4dp2ma5h6",
+                    "quantity": 2,
+                    "notes": "Test order"
+                }
+            ]
+        }
+    ]
+}
+
+### Update request status to PENDING_KITCHEN (simulating approval process)
+PATCH {{baseUrl}}/service-requests/{{createRequest.response.body.data.id}}/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "PENDING_KITCHEN",
+    "notes": "Approved for kitchen"
+}
+
+### Now test kitchen routes
+
+### Get pending kitchen orders
+GET {{baseUrl}}/kitchen/orders/pending
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Start working on order (change to IN_PROGRESS)
+POST {{baseUrl}}/kitchen/orders/{{createRequest.response.body.data.id}}/progress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get in-progress orders
+GET {{baseUrl}}/kitchen/orders/inprogress
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Complete the order
+POST {{baseUrl}}/kitchen/orders/{{createRequest.response.body.data.id}}/complete
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get completed orders
+GET {{baseUrl}}/kitchen/orders/completed
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}

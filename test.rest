@@ -190,29 +190,49 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 {
-    "judulPekerjaan":"Pemeliharaan Turbin",
-    "type":"MEAL",
-    "requestDate": "2024-01-20T08:00:00Z",
-    "requiredDate": "2024-01-21T12:00:00Z",
-    "dropPoint": "Ruang Meeting Utama",
+    "judulPekerjaan": "Pemeliharaan ",
+    "type": "MEAL",
+    "requestDate": "2025-02-15T15:13:39.180Z",
+    "requiredDate": "2025-02-15T15:13:39.180Z",
+    "category": "Sarapan",
+    "dropPoint": "Kantor Pusat Lt. 1",
     "supervisor": {
-        "name": "John Supervisor",
-        "subBidang": "IT Development",
-        "nomorHp": "081234567890"
+        "name": "ABDUL KADIR",
+        "subBidang": "Fasilitas dan Sarana",
+        "nomorHp": "087733760363"
     },
     "pic": {
-        "name": "AGUS PIC",
-        "nomorHp": "081234567891"
+        "name": "MUHAMMAD NAUFAL AMRIZAL",
+        "nomorHp": "087733760363"
     },
     "employeeOrders": [
         {
-            "employeeName": "John Employee",
+            "employeeName": "TES USER 1",
             "entity": "PLNIP",
             "items": [
                 {
-                    "menuItemId": "{{createMenu.response.body.data.id}}",
-                    "quantity": 1,
-                    "notes": "No spicy"
+                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "quantity": 1
+                }
+            ]
+        },
+        {
+            "employeeName": "Pegawai IPS",
+            "entity": "IPS",
+            "items": [
+                {
+                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "quantity": 1
+                }
+            ]
+        },
+        {
+            "employeeName": "Pegawai IPS",
+            "entity": "IPS",
+            "items": [
+                {
+                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "quantity": 1
                 }
             ]
         }
@@ -232,7 +252,7 @@ Authorization: Bearer {{authToken}}
     }
 }
 
-### Update request status
+### Update request status (APPROVAL ASMAN)
 PATCH {{baseUrl}}/service-requests/{{createRequest.response.body.data.id}}/status
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}

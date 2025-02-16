@@ -479,42 +479,74 @@ export const createServiceRequest = async (requestData, userId) => {
         },
       });
 
-      console.log(request.requiredDate);
-
-      // Only send WhatsApp notification if admin group exists
+      // Send WhatsApp notification to both admin group and supervisor
       if (adminGroup) {
-        console.log(
-          "Sending WhatsApp notification to admin group:",
-          adminGroup.groupId
-        );
-        const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: request.id,
-            // groupId: adminGroup.groupId,
-            phone: `62${request.supervisor.nomorHp}`, //EDIT THIS TO ASMAN PHONE NUMBER
-            judulPekerjaan: request.judulPekerjaan,
-            subBidang: request.supervisor?.subBidang || "Kosong",
-            requiredDate: request.requiredDate,
-            requestDate: request.requestDate,
-            category: request.category,
-            dropPoint: request.dropPoint,
-            totalEmployees: request.employeeOrders.length,
-            employeeOrders: request.employeeOrders,
-            pic: request.pic.name,
-            picPhone: request.pic.nomorHp,
-            approvalToken: token,
-          }),
-        });
-        if (!response.ok) {
-          const errorMessage = await response.text();
+        // Send to admin group
+        try {
+          await fetch(`${WA_URL}/api/messages/send-meal`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: request.id,
+              groupId: adminGroup.groupId,
+              judulPekerjaan: request.judulPekerjaan,
+              subBidang: request.supervisor?.subBidang || "Kosong",
+              requiredDate: request.requiredDate,
+              requestDate: request.requestDate,
+              category: request.category,
+              dropPoint: request.dropPoint,
+              totalEmployees: request.employeeOrders.length,
+              employeeOrders: request.employeeOrders,
+              pic: request.pic.name,
+              picPhone: request.pic.nomorHp,
+              approvalToken: token,
+            }),
+          });
+        } catch (error) {
           console.error(
-            "Failed to send WhatsApp notification:",
-            response.status,
-            errorMessage
+            "Error sending WhatsApp notification to admin group:",
+            error
+          );
+        }
+
+        // Send to supervisor
+        try {
+          const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: request.id,
+              phone: `62${request.supervisor.nomorHp}`,
+              judulPekerjaan: request.judulPekerjaan,
+              subBidang: request.supervisor?.subBidang || "Kosong",
+              requiredDate: request.requiredDate,
+              requestDate: request.requestDate,
+              category: request.category,
+              dropPoint: request.dropPoint,
+              totalEmployees: request.employeeOrders.length,
+              employeeOrders: request.employeeOrders,
+              pic: request.pic.name,
+              picPhone: request.pic.nomorHp,
+              approvalToken: token,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorMessage = await response.text();
+            console.error(
+              "Failed to send WhatsApp notification to supervisor:",
+              response.status,
+              errorMessage
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Error sending WhatsApp notification to supervisor:",
+            error
           );
         }
       } else {
