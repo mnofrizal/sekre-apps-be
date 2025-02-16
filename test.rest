@@ -173,6 +173,16 @@ GET {{baseUrl}}/service-requests?page=1&limit=7&sort=requestDate:desc
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
+### Get 5 most recent active orders
+GET {{baseUrl}}/service-requests/recent-active
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get 7 latest order activities/status changes
+GET {{baseUrl}}/service-requests/recent-activities
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
 ### Get pending service requests
 GET {{baseUrl}}/service-requests/pending
 Content-Type: {{contentType}}
@@ -309,5 +319,18 @@ Content-Type: {{contentType}}
 
 ### Delete approval link
 DELETE {{baseUrl}}/requests/approval/{{createRequest.response.body.data.id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+
+### ==================== Statistics & Reports ====================
+
+### Get counts for each status
+GET {{baseUrl}}/service-requests/stats/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get counts by order type
+GET {{baseUrl}}/service-requests/stats/type
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
