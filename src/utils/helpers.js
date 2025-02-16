@@ -1,4 +1,5 @@
 import { customAlphabet } from "nanoid";
+import { BASE_URL } from "./constants.js";
 
 export const generateToken = () => {
   const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6);
@@ -25,4 +26,11 @@ export const getMealCategory = (date) => {
     return "Makan Malam";
   }
   return ""; // fallback
+};
+
+export const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  // Convert Windows-style paths to URL format
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  return `${BASE_URL}/${normalizedPath}`;
 };

@@ -2,11 +2,84 @@ import * as serviceRequestService from "../services/serviceRequest.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-export const getAllServiceRequests = async (req, res, next) => {
-  console.log(req.user);
+// Quick Access Controllers
+/**
+ * Get recent active orders
+ */
+export const getRecentActiveOrders = async (req, res, next) => {
   try {
-    const requests = await serviceRequestService.getAllServiceRequests(
+    const orders = await serviceRequestService.getRecentActiveOrders(req.user);
+    res.json(
+      ApiResponse.success("Recent active orders retrieved successfully", orders)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get recent activities
+ */
+export const getRecentActivities = async (req, res, next) => {
+  try {
+    const activities = await serviceRequestService.getRecentActivities(
       req.user
+    );
+    res.json(
+      ApiResponse.success(
+        "Recent activities retrieved successfully",
+        activities
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get status statistics
+ */
+export const getStatusStats = async (req, res, next) => {
+  try {
+    const stats = await serviceRequestService.getStatusStats(req.user);
+    res.json(
+      ApiResponse.success("Status statistics retrieved successfully", stats)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get type statistics
+ */
+export const getTypeStats = async (req, res, next) => {
+  try {
+    const stats = await serviceRequestService.getTypeStats(req.user);
+    res.json(
+      ApiResponse.success("Type statistics retrieved successfully", stats)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllServiceRequests = async (req, res, next) => {
+  try {
+    const { startDate, endDate, status, type, employeeId, page, limit, sort } =
+      req.query;
+    const requests = await serviceRequestService.getAllServiceRequests(
+      req.user,
+      {
+        startDate,
+        endDate,
+        status,
+        type,
+        employeeId,
+        page,
+        limit,
+        sort,
+      }
     );
     res.json(
       ApiResponse.success("Service requests retrieved successfully", requests)
@@ -134,8 +207,18 @@ export const completeRequest = async (req, res, next) => {
 
 export const exportServiceRequestsToExcel = async (req, res, next) => {
   try {
-    const requests = await serviceRequestService.getAllServiceRequests(
-      req.user
+    const { startDate, endDate, status, type, employeeId } = req.query;
+    const { requests } = await serviceRequestService.getAllServiceRequests(
+      req.user,
+      {
+        startDate,
+        endDate,
+        status,
+        type,
+        employeeId,
+        page: 1,
+        limit: 1000, // High limit to get all records for export
+      }
     );
     const buffer = await serviceRequestService.convertServiceRequestsToExcel(
       requests

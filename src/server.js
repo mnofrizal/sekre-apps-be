@@ -4,7 +4,8 @@ import morgan from "morgan";
 import prisma from "./lib/prisma.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import routes from "./routes/index.js";
-import { FRONTEND_URL, WA_URL } from "./utils/constants.js";
+import { FRONTEND_URL, WA_URL, BASE_URL } from "./utils/constants.js";
+import path from "path";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -13,6 +14,15 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static("uploads"));
+
+// Make BASE_URL available to all routes
+app.use((req, res, next) => {
+  req.baseUrl = BASE_URL;
+  next();
+});
 
 // Routes
 app.use("/api", routes);

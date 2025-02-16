@@ -1,11 +1,23 @@
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { getFileUrl } from "../utils/helpers.js";
+
+const transformOrder = (order) => {
+  if (order.evidence) {
+    order.evidence = getFileUrl(order.evidence);
+  }
+  return order;
+};
+
+const transformOrders = (orders) => {
+  return orders.map(transformOrder);
+};
 
 /**
  * Get all kitchen orders
  */
 export const getAllOrders = async () => {
-  return await prisma.serviceRequest.findMany({
+  const orders = await prisma.serviceRequest.findMany({
     where: {
       type: "MEAL",
       status: {
@@ -23,21 +35,29 @@ export const getAllOrders = async () => {
     },
     include: {
       employeeOrders: {
-        include: {
+        select: {
+          id: true,
+          employeeName: true,
+          entity: true,
           orderItems: {
-            include: {
-              menuItem: true,
+            select: {
+              id: true,
+              quantity: true,
+              notes: true,
+              menuItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: true,
+                },
+              },
             },
           },
         },
       },
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
     },
   });
+  return transformOrders(orders);
 };
 
 /**
@@ -73,7 +93,7 @@ export const getOrderStats = async () => {
  * Get order by ID
  */
 export const getOrderById = async (orderId) => {
-  const request = await prisma.serviceRequest.findUnique({
+  const order = await prisma.serviceRequest.findUnique({
     where: {
       id: orderId,
       type: "MEAL",
@@ -96,11 +116,11 @@ export const getOrderById = async (orderId) => {
     },
   });
 
-  if (!request) {
+  if (!order) {
     throw new ApiError(404, "Order not found");
   }
 
-  return request;
+  return transformOrder(order);
 };
 
 /**
@@ -153,14 +173,14 @@ export const startOrder = async (orderId, userId) => {
       },
     });
 
-    return updatedRequest;
+    return transformOrder(updatedRequest);
   });
 };
 
 /**
  * Complete order
  */
-export const completeOrder = async (orderId, userId) => {
+export const completeOrder = async (orderId, userId, evidencePath = null) => {
   const request = await prisma.serviceRequest.findUnique({
     where: {
       id: orderId,
@@ -176,16 +196,21 @@ export const completeOrder = async (orderId, userId) => {
     throw new ApiError(400, "Order is not in progress");
   }
 
+  if (!evidencePath) {
+    throw new ApiError(400, "Evidence image is required to complete the order");
+  }
+
   return await prisma.$transaction(async (prisma) => {
     const updatedRequest = await prisma.serviceRequest.update({
       where: { id: orderId },
       data: {
         status: "COMPLETED",
+        evidence: evidencePath,
         statusHistory: {
           create: {
             status: "COMPLETED",
             changedBy: userId,
-            notes: "Order completed by kitchen",
+            notes: "Order completed by kitchen with evidence",
           },
         },
       },
@@ -207,7 +232,7 @@ export const completeOrder = async (orderId, userId) => {
       },
     });
 
-    return updatedRequest;
+    return transformOrder(updatedRequest);
   });
 };
 
@@ -276,7 +301,7 @@ export const updateOrderStatus = async (orderId, status, userId) => {
  * Get pending orders
  */
 export const getPendingOrders = async () => {
-  return await prisma.serviceRequest.findMany({
+  const orders = await prisma.serviceRequest.findMany({
     where: {
       type: "MEAL",
       status: "PENDING_KITCHEN",
@@ -286,28 +311,36 @@ export const getPendingOrders = async () => {
     },
     include: {
       employeeOrders: {
-        include: {
+        select: {
+          id: true,
+          employeeName: true,
+          entity: true,
           orderItems: {
-            include: {
-              menuItem: true,
+            select: {
+              id: true,
+              quantity: true,
+              notes: true,
+              menuItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: true,
+                },
+              },
             },
           },
         },
       },
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
     },
   });
+  return transformOrders(orders);
 };
 
 /**
  * Get in-progress orders
  */
 export const getInProgressOrders = async () => {
-  return await prisma.serviceRequest.findMany({
+  const orders = await prisma.serviceRequest.findMany({
     where: {
       type: "MEAL",
       status: "IN_PROGRESS",
@@ -317,28 +350,36 @@ export const getInProgressOrders = async () => {
     },
     include: {
       employeeOrders: {
-        include: {
+        select: {
+          id: true,
+          employeeName: true,
+          entity: true,
           orderItems: {
-            include: {
-              menuItem: true,
+            select: {
+              id: true,
+              quantity: true,
+              notes: true,
+              menuItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: true,
+                },
+              },
             },
           },
         },
       },
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
     },
   });
+  return transformOrders(orders);
 };
 
 /**
  * Get completed orders
  */
 export const getCompletedOrders = async () => {
-  return await prisma.serviceRequest.findMany({
+  const orders = await prisma.serviceRequest.findMany({
     where: {
       type: "MEAL",
       status: "COMPLETED",
@@ -348,21 +389,29 @@ export const getCompletedOrders = async () => {
     },
     include: {
       employeeOrders: {
-        include: {
+        select: {
+          id: true,
+          employeeName: true,
+          entity: true,
           orderItems: {
-            include: {
-              menuItem: true,
+            select: {
+              id: true,
+              quantity: true,
+              notes: true,
+              menuItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: true,
+                },
+              },
             },
           },
         },
       },
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
     },
   });
+  return transformOrders(orders);
 };
 
 /**

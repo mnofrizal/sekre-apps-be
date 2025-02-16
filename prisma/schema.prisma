@@ -106,6 +106,7 @@ model ServiceRequest {
   dropPoint      String
   supervisor     Json
   pic            Json
+  evidence       String? // Path to evidence image
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

@@ -1,5 +1,6 @@
 import express from "express";
 import { auth } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
 import * as kitchenController from "../controllers/kitchen.controller.js";
 
 const router = express.Router();
@@ -60,10 +61,14 @@ router.post("/orders/:id/progress", kitchenController.startOrder);
 
 /**
  * @route   POST /api/v1/kitchen/orders/:id/complete
- * @desc    Mark an order as completed
+ * @desc    Mark an order as completed with evidence image
  * @access  Private
  */
-router.post("/orders/:id/complete", kitchenController.completeOrder);
+router.post(
+  "/orders/:id/complete",
+  upload.single("evidence"),
+  kitchenController.completeOrder
+);
 
 /**
  * @route   PATCH /api/v1/kitchen/orders/:id/status

@@ -169,7 +169,7 @@ Authorization: Bearer {{authToken}}
 ### ==================== Service Request Routes ====================
 
 ### Get all service requests
-GET {{baseUrl}}/service-requests
+GET {{baseUrl}}/service-requests?page=1&limit=7&sort=requestDate:desc
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 

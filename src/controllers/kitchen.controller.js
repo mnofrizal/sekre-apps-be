@@ -60,9 +60,11 @@ export const startOrder = async (req, res, next) => {
  */
 export const completeOrder = async (req, res, next) => {
   try {
+    const evidencePath = req.file ? req.file.path : null;
     const order = await kitchenService.completeOrder(
       req.params.id,
-      req.user.id
+      req.user.id,
+      evidencePath
     );
     res.json(ApiResponse.success("Order completed successfully", order));
   } catch (error) {

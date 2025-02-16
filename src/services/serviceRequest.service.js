@@ -4,7 +4,32 @@ import { WA_URL } from "../utils/constants.js";
 import { generateToken, getMealCategory } from "../utils/helpers.js";
 import ExcelJS from "exceljs";
 
-export const getAllServiceRequests = async (user) => {
+// Helper function for filtering based on role
+const getRoleBasedFilter = (user) => {
+  if (user.role === "ADMIN") {
+    return {};
+  }
+  return { handlerId: user.id };
+};
+
+export const getAllServiceRequests = async (user, params = {}) => {
+  const {
+    startDate,
+    endDate,
+    status,
+    type,
+    employeeId,
+    page = 1,
+    limit = 10,
+    sort = "createdAt:desc", // Default sort by createdAt in descending order
+  } = params;
+
+  // Parse sort parameter (field:order)
+  const [sortField, sortOrder] = sort.split(":");
+  const orderBy = {
+    [sortField]: sortOrder.toLowerCase() === "asc" ? "asc" : "desc",
+  };
+
   // Base query with all includes
   const includeOptions = {
     handler: {
@@ -16,52 +41,101 @@ export const getAllServiceRequests = async (user) => {
       },
     },
     employeeOrders: {
-      include: {
+      select: {
+        id: true,
+        employeeName: true,
+        entity: true,
         orderItems: {
-          include: {
-            menuItem: true,
+          select: {
+            id: true,
+            quantity: true,
+            notes: true,
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
           },
         },
-      },
-    },
-    statusHistory: {
-      orderBy: {
-        createdAt: "desc",
       },
     },
     approvalLinks: true,
   };
 
-  // Base where clause
-  let whereClause = {};
+  // Build where clause with filters
+  const whereClause = {
+    AND: [
+      // Role-based filtering
+      user.role === "KITCHEN"
+        ? {
+            status: {
+              in: [
+                "PENDING_KITCHEN",
+                "REJECTED_KITCHEN",
+                "IN_PROGRESS",
+                "COMPLETED",
+                "CANCELLED",
+              ],
+            },
+          }
+        : user.role !== "ADMIN"
+        ? { handlerId: user.id }
+        : {},
 
-  // Filter based on user role
-  if (user.role === "KITCHEN") {
-    // Kitchen users only see requests with specific statuses
-    whereClause.status = {
-      in: [
-        "PENDING_KITCHEN",
-        "REJECTED_KITCHEN",
-        "IN_PROGRESS",
-        "COMPLETED",
-        "CANCELLED",
-      ],
-    };
-  } else if (user.role !== "ADMIN") {
-    // Regular users only see their own requests
-    whereClause.handlerId = user.id;
-  }
+      // Date range filter
+      startDate && endDate
+        ? {
+            requestDate: {
+              gte: new Date(startDate),
+              lte: new Date(endDate),
+            },
+          }
+        : {},
 
-  // Get requests with filters applied
+      // Status filter
+      status ? { status } : {},
+
+      // Type filter
+      type ? { type } : {},
+
+      // Employee filter
+      employeeId
+        ? {
+            employeeOrders: {
+              some: {
+                id: employeeId,
+              },
+            },
+          }
+        : {},
+    ],
+  };
+
+  // Get total count for pagination
+  const total = await prisma.serviceRequest.count({
+    where: whereClause,
+  });
+
+  // Get paginated requests with filters applied
   const requests = await prisma.serviceRequest.findMany({
     where: whereClause,
     include: includeOptions,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy,
+    skip: (parseInt(page) - 1) * parseInt(limit),
+    take: parseInt(limit),
   });
 
-  return requests;
+  return {
+    requests,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    },
+  };
 };
 
 export const convertServiceRequestsToExcel = async (requests) => {
@@ -410,6 +484,17 @@ export const createServiceRequest = async (requestData, userId) => {
   let request;
 
   try {
+    // Get user role first
+    const user = await prisma.dashboardUser.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    // Determine initial status based on user role
+    const initialStatus =
+      user.role === "ADMIN" ? "PENDING_KITCHEN" : "PENDING_SUPERVISOR";
+    const approvalType = user.role === "ADMIN" ? "KITCHEN" : "SUPERVISOR";
+
     // Database transaction
     request = await prisma.$transaction(async (prisma) => {
       // Create the service request with all related data
@@ -418,7 +503,7 @@ export const createServiceRequest = async (requestData, userId) => {
           ...serviceRequestData,
           id: token,
           type: "MEAL",
-          status: "PENDING_SUPERVISOR",
+          status: initialStatus,
           handlerId: userId,
           employeeOrders: {
             create: employeeOrders.map((order) => ({
@@ -435,7 +520,7 @@ export const createServiceRequest = async (requestData, userId) => {
           },
           statusHistory: {
             create: {
-              status: "PENDING_SUPERVISOR",
+              status: initialStatus,
               changedBy: userId,
               notes: "Request created",
             },
@@ -444,7 +529,7 @@ export const createServiceRequest = async (requestData, userId) => {
           approvalLinks: {
             create: {
               token: token,
-              type: "SUPERVISOR",
+              type: approvalType,
               expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
               isUsed: false,
             },
@@ -468,92 +553,120 @@ export const createServiceRequest = async (requestData, userId) => {
       return createdRequest;
     });
 
-    try {
-      // Get admin group ID
-      const adminGroup = await prisma.group.findFirst({
-        where: {
-          type: "ADMIN",
-        },
-        select: {
-          groupId: true,
-        },
-      });
+    // Handle notifications based on user role
+    if (user.role === "ADMIN") {
+      try {
+        // Get kitchen group for direct notification
+        const kitchenGroup = await prisma.group.findFirst({
+          where: {
+            type: "KITCHEN",
+          },
+          select: {
+            groupId: true,
+          },
+        });
 
-      // Send WhatsApp notification to both admin group and supervisor
-      if (adminGroup) {
-        // Send to admin group
-        try {
-          await fetch(`${WA_URL}/api/messages/send-meal`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id: request.id,
-              groupId: adminGroup.groupId,
-              judulPekerjaan: request.judulPekerjaan,
-              subBidang: request.supervisor?.subBidang || "Kosong",
-              requiredDate: request.requiredDate,
-              requestDate: request.requestDate,
-              category: request.category,
-              dropPoint: request.dropPoint,
-              totalEmployees: request.employeeOrders.length,
-              employeeOrders: request.employeeOrders,
-              pic: request.pic.name,
-              picPhone: request.pic.nomorHp,
-              approvalToken: token,
-            }),
-          });
-        } catch (error) {
-          console.error(
-            "Error sending WhatsApp notification to admin group:",
-            error
-          );
+        if (kitchenGroup) {
+          console.log("Sending WhatsApp notification to kitchen");
+          try {
+            const notifResponse = await fetch(
+              `${WA_URL}/api/messages/confirm-to-kitchen`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: request.id,
+                  groupId: kitchenGroup.groupId,
+                  judulPekerjaan: request.judulPekerjaan,
+                  subBidang: request.supervisor?.subBidang || "Kosong",
+                  requiredDate: request.requiredDate,
+                  requestDate: request.requestDate,
+                  category: request.category,
+                  dropPoint: request.dropPoint,
+                  totalEmployees: request.employeeOrders.length,
+                  employeeOrders: request.employeeOrders,
+                  pic: request.pic.name,
+                  picPhone: request.pic.nomorHp,
+                  approvalToken: token,
+                }),
+              }
+            );
+
+            if (!notifResponse.ok) {
+              const errorMessage = await notifResponse.text();
+              console.error(
+                "Failed to send WhatsApp notification to kitchen:",
+                notifResponse.status,
+                errorMessage
+              );
+            }
+          } catch (error) {
+            console.error(
+              "Error sending WhatsApp notification to kitchen:",
+              error
+            );
+          }
         }
+      } catch (error) {
+        console.error("Error getting kitchen group:", error);
+      }
+    } else {
+      // For non-admin users, send normal supervisor notification
+      try {
+        // Get admin group for notification
+        const adminGroup = await prisma.group.findFirst({
+          where: {
+            type: "ADMIN",
+          },
+          select: {
+            groupId: true,
+          },
+        });
 
-        // Send to supervisor
-        try {
-          const response = await fetch(`${WA_URL}/api/messages/send-meal`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id: request.id,
-              phone: `62${request.supervisor.nomorHp}`,
-              judulPekerjaan: request.judulPekerjaan,
-              subBidang: request.supervisor?.subBidang || "Kosong",
-              requiredDate: request.requiredDate,
-              requestDate: request.requestDate,
-              category: request.category,
-              dropPoint: request.dropPoint,
-              totalEmployees: request.employeeOrders.length,
-              employeeOrders: request.employeeOrders,
-              pic: request.pic.name,
-              picPhone: request.pic.nomorHp,
-              approvalToken: token,
-            }),
-          });
+        if (adminGroup) {
+          console.log("Sending WhatsApp notification to supervisor");
+          const notifResponse = await fetch(
+            `${WA_URL}/api/messages/send-meal`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                id: request.id,
+                phone: `62${request.supervisor.nomorHp}`,
+                judulPekerjaan: request.judulPekerjaan,
+                subBidang: request.supervisor?.subBidang || "Kosong",
+                requiredDate: request.requiredDate,
+                requestDate: request.requestDate,
+                category: request.category,
+                dropPoint: request.dropPoint,
+                totalEmployees: request.employeeOrders.length,
+                employeeOrders: request.employeeOrders,
+                pic: request.pic.name,
+                picPhone: request.pic.nomorHp,
+                approvalToken: token,
+              }),
+            }
+          );
 
-          if (!response.ok) {
-            const errorMessage = await response.text();
+          if (!notifResponse.ok) {
+            const errorMessage = await notifResponse.text();
             console.error(
               "Failed to send WhatsApp notification to supervisor:",
-              response.status,
+              notifResponse.status,
               errorMessage
             );
           }
-        } catch (error) {
-          console.error(
-            "Error sending WhatsApp notification to supervisor:",
-            error
-          );
         }
-      } else {
-        console.log("No admin group found, skipping WhatsApp notification");
+      } catch (error) {
+        console.error(
+          "Error sending WhatsApp notification to supervisor:",
+          error
+        );
       }
-    } catch (error) {
-      console.error("Error sending WhatsApp notification:", error);
     }
 
     return request;
@@ -700,6 +813,105 @@ export const updateRequestStatus = async (id, newStatus, userId, notes) => {
   });
 };
 
+/**
+ * Get recent active orders (5 most recent)
+ */
+export const getRecentActiveOrders = async (user) => {
+  const roleFilter = getRoleBasedFilter(user);
+  return await prisma.serviceRequest.findMany({
+    where: {
+      ...roleFilter,
+      status: {
+        notIn: ["COMPLETED", "CANCELLED"],
+      },
+    },
+    include: {
+      employeeOrders: {
+        include: {
+          orderItems: {
+            include: {
+              menuItem: true,
+            },
+          },
+        },
+      },
+      statusHistory: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+  });
+};
+
+/**
+ * Get recent activities (7 latest status changes)
+ */
+export const getRecentActivities = async (user) => {
+  const roleFilter = getRoleBasedFilter(user);
+  const requests = user.role === "ADMIN" ? {} : { request: roleFilter };
+
+  return await prisma.statusHistory.findMany({
+    where: requests,
+    include: {
+      request: {
+        select: {
+          id: true,
+          type: true,
+          judulPekerjaan: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 7,
+  });
+};
+
+/**
+ * Get status statistics
+ */
+export const getStatusStats = async (user) => {
+  const roleFilter = getRoleBasedFilter(user);
+  const stats = await prisma.serviceRequest.groupBy({
+    by: ["status"],
+    where: roleFilter,
+    _count: {
+      id: true,
+    },
+  });
+
+  return stats.reduce((acc, curr) => {
+    acc[curr.status] = curr._count.id;
+    return acc;
+  }, {});
+};
+
+/**
+ * Get type statistics
+ */
+export const getTypeStats = async (user) => {
+  const roleFilter = getRoleBasedFilter(user);
+  const stats = await prisma.serviceRequest.groupBy({
+    by: ["type"],
+    where: roleFilter,
+    _count: {
+      id: true,
+    },
+  });
+
+  return stats.reduce((acc, curr) => {
+    acc[curr.type] = curr._count.id;
+    return acc;
+  }, {});
+};
+
 export const completeRequest = async (id, userId, notes) => {
   return prisma.$transaction(async (prisma) => {
     // Update the request status to completed
@@ -732,8 +944,6 @@ export const completeRequest = async (id, userId, notes) => {
         },
       },
     });
-
-    console.log({ completedRequest });
 
     // Get admin user with notification enabled
     const adminUser = await prisma.dashboardUser.findFirst({

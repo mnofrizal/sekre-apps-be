@@ -51,9 +51,16 @@ POST {{baseUrl}}/kitchen/orders/RX19RJ/progress
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### Complete an order
+### Complete an order (with evidence image)
+# @note: For multipart/form-data requests, use a client like Postman
+# In Postman:
+# 1. Use POST {{baseUrl}}/kitchen/orders/RX19RJ/complete
+# 2. Set Authorization: Bearer {{authToken}}
+# 3. In the Body tab:
+#    - Select form-data
+#    - Add key "evidence" as File type
+#    - Upload an image file (max 5MB, image files only)
 POST {{baseUrl}}/kitchen/orders/RX19RJ/complete
-Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 ### Update order status
@@ -113,9 +120,21 @@ GET {{baseUrl}}/kitchen/orders/inprogress
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### 4. Complete the order
+### 4. Complete the order with evidence
+# @note: For this request, use Postman with form-data:
+# POST {{baseUrl}}/kitchen/orders/order-id-here/complete
+# Headers:
+#   Authorization: Bearer {{authToken}}
+# Body (form-data):
+#   evidence: [Upload image file]
+#
+# Requirements:
+# - Image file is required
+# - Maximum file size: 5MB
+# - Accepted formats: jpeg, png, etc.
+# The image will be saved in uploads/evidence directory
+# The file path will be stored in the ServiceRequest.evidence field
 POST {{baseUrl}}/kitchen/orders/order-id-here/complete
-Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 ### 5. Verify order is in completed list
