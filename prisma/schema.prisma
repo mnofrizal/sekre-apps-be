@@ -44,6 +44,7 @@ enum ApprovalType {
   SUPERVISOR
   GA
   KITCHEN
+  KITCHEN_DELIVERY
 }
 
 // Updated Employee model
@@ -79,6 +80,22 @@ model DashboardUser {
 
   // Relations
   requestsHandled ServiceRequest[] @relation("Handler")
+  pushTokens      PushToken[]
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  isActive  Boolean  @default(true)
+  device    String? // For storing device information
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   DashboardUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ======= MENU MANAGEMENT =======

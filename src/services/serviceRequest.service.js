@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { WA_URL } from "../utils/constants.js";
 import { generateToken, getMealCategory } from "../utils/helpers.js";
 import ExcelJS from "exceljs";
+import * as notificationService from "./notification.service.js";
 
 // Helper function for filtering based on role
 const getRoleBasedFilter = (user) => {
@@ -566,6 +567,7 @@ export const createServiceRequest = async (requestData, userId) => {
           },
         });
 
+        // Send WhatsApp notification
         if (kitchenGroup) {
           console.log("Sending WhatsApp notification to kitchen");
           try {
@@ -609,8 +611,24 @@ export const createServiceRequest = async (requestData, userId) => {
             );
           }
         }
+
+        // Send push notification to kitchen staff
+        try {
+          await notificationService.sendNotificationToRole("KITCHEN", {
+            title: `Pesanan Baru #${request.id}`,
+            body: `Segera klik disini untuk melakukan konfirmasi pesanan #${request.id}`,
+            data: {
+              type: "kitchen_new_order",
+              orderId: request.id,
+              judulPekerjaan: request.judulPekerjaan,
+              category: request.category,
+            },
+          });
+        } catch (error) {
+          console.error("Error sending push notification to kitchen:", error);
+        }
       } catch (error) {
-        console.error("Error getting kitchen group:", error);
+        console.error("Error in notification process:", error);
       }
     } else {
       // For non-admin users, send normal supervisor notification
@@ -822,7 +840,13 @@ export const getRecentActiveOrders = async (user) => {
     where: {
       ...roleFilter,
       status: {
-        notIn: ["COMPLETED", "CANCELLED"],
+        notIn: [
+          "COMPLETED",
+          "CANCELLED",
+          "REJECTED_SUPERVISOR",
+          "REJECTED_GA",
+          "REJECTED_KITCHEN",
+        ],
       },
     },
     include: {
@@ -840,7 +864,9 @@ export const getRecentActiveOrders = async (user) => {
           createdAt: "desc",
         },
       },
+      approvalLinks: true,
     },
+
     orderBy: {
       createdAt: "desc",
     },

@@ -189,7 +189,7 @@ Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
 ### Get service request by ID
-GET {{baseUrl}}/service-requests/request-id-here
+GET {{baseUrl}}/service-requests/8QCB2U
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
@@ -221,7 +221,7 @@ Authorization: Bearer {{authToken}}
             "entity": "PLNIP",
             "items": [
                 {
-                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "menuItemId": "{{createMenu.response.body.data.id}}",
                     "quantity": 1
                 }
             ]
@@ -231,7 +231,7 @@ Authorization: Bearer {{authToken}}
             "entity": "IPS",
             "items": [
                 {
-                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "menuItemId": "{{createMenu.response.body.data.id}}",
                     "quantity": 1
                 }
             ]
@@ -241,7 +241,7 @@ Authorization: Bearer {{authToken}}
             "entity": "IPS",
             "items": [
                 {
-                    "menuItemId": "cm76aarra0010115n91vrdi0b",
+                    "menuItemId": "{{createMenu.response.body.data.id}}",
                     "quantity": 1
                 }
             ]

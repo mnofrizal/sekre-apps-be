@@ -14,6 +14,7 @@ const userSelect = {
   isActive: true,
   createdAt: true,
   updatedAt: true,
+  pushTokens: true,
 };
 
 export const getAllUsers = async () => {

@@ -1,0 +1,157 @@
+@baseUrl = http://localhost:5200/api
+
+# First, login to get the token and replace it here
+@token = {{login.response.body.data.accessToken}}
+@baseUrl = http://localhost:5200/api
+@contentType = application/json
+
+# For testing, you can get the token by:
+# 1. Login through the app
+# 2. Copy the token from the response
+# 3. Replace 'your_auth_token_here' with the actual token
+### Login user
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "admin@example.com",
+    "password": "password123"
+}
+### Get all push tokens
+GET {{baseUrl}}/push-tokens
+Authorization: Bearer {{token}}
+
+### Get specific push token by ID
+GET {{baseUrl}}/push-tokens/token_id_here
+Authorization: Bearer {{token}}
+
+### Get push tokens for specific user
+GET {{baseUrl}}/push-tokens/user/user_id_here
+Authorization: Bearer {{token}}
+
+### Register new push token
+POST {{baseUrl}}/push-tokens
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "token": "expo_push_token_here",
+    "device": "iPhone 12",
+    "isActive": true
+}
+
+### Update push token
+PUT {{baseUrl}}/push-tokens/token_id_here
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "isActive": false,
+    "device": "Updated Device Name"
+}
+
+### Delete push token by ID
+DELETE {{baseUrl}}/push-tokens/id/token_id_here
+Authorization: Bearer {{token}}
+
+### Delete push token by value
+DELETE {{baseUrl}}/push-tokens/token/ExponentPushToken[J9vDVmNfPSkmxh3Swj2XBw]
+Authorization: Bearer {{token}}
+
+### Delete all push tokens for a user
+DELETE {{baseUrl}}/push-tokens/user/user_id_here
+Authorization: Bearer {{token}}
+
+### Send notification to specific users
+POST {{baseUrl}}/notifications/send-to-users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "userIds": ["user_id_1", "user_id_2"],
+    "notification": {
+        "title": "Test Notification",
+        "body": "This is a test notification",
+        "data": {
+            "type": "test",
+            "additionalInfo": "Some extra data"
+        }
+    }
+}
+
+### Send notification to specific tokens
+POST {{baseUrl}}/notifications/send-to-tokens
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "tokens": ["ExponentPushToken[J9vDVmNfPSkmxh3Swj2XBw]"],
+    "notification": {
+       "title": "Test Notification",
+       "body": "Testing push notification",
+       "data": {
+         "type": "order_update",
+         "orderId": "2I6GH3"
+       }
+     }
+}
+
+### Send notification to users by role KITCHEN
+POST {{baseUrl}}/notifications/send-to-role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "role": "KITCHEN",
+    "notification": {
+        "title": "New Kitchen Order",
+        "body": "There is a new order waiting for kitchen approval",
+        "data": {
+            "type": "kitchen_new_order",
+            "orderId": "2I6GH3"
+        }
+    }
+}
+
+### Kirim notifikasi ke pengguna dengan peran SEKRETARY
+POST {{baseUrl}}/notifications/send-to-role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "role": "SECRETARY",
+    "notification": {
+        "title": "Informasi Pesanan",
+        "body": "Status pesanan Anda telah diperbarui",
+        "data": {
+            "type": "order_update",
+            "orderId": "2I6GH3"
+        }
+    }
+}
+### Kirim notifikasi ke pengguna dengan peran ADMIN GA
+POST {{baseUrl}}/notifications/send-to-role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "role": "ADMIN",
+    "notification": {
+        "title": "Pesanan Baru",
+        "body": "Ada pesanan baru yang perlu Anda tangani",
+        "data": {
+            "type": "order_assigned",
+            "orderId": "2I6GH3"
+        }
+    }
+}
+
+### Handle invalid tokens
+POST {{baseUrl}}/notifications/handle-invalid-tokens
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "tokens": ["invalid_token_1", "invalid_token_2"]
+}

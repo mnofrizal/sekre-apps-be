@@ -10,8 +10,8 @@ POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-    "email": "admin@example.com",
-    "password": "password123"
+    "email": "kantinberkah@plnindonesiapower.co.id",
+    "password": "kantin123"
 }
 
 ### ==================== Kitchen Routes ====================
@@ -46,12 +46,22 @@ GET {{baseUrl}}/kitchen/orders/RX19RJ
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### Start working on order (Change status to IN_PROGRESS)
-POST {{baseUrl}}/kitchen/orders/RX19RJ/progress
+### Start working on order (Change status to IN_PROGRESS and create KITCHEN_DELIVERY approval link)
+# This will:
+# 1. Create a KITCHEN_DELIVERY approval link with 24-hour expiration
+# 2. Change order status to IN_PROGRESS
+# 3. Send notifications to admin and handler
+POST {{baseUrl}}/kitchen/orders/R599RZ/progress
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### Complete an order (with evidence image)
+### Complete an order (with evidence image and approval link)
+# This will:
+# 1. Find and use the KITCHEN_DELIVERY approval link
+# 2. Mark approval as used with evidence image
+# 3. Change status to COMPLETED per APPROVAL_FLOW
+# 4. Send notifications to admin and handler
+#
 # @note: For multipart/form-data requests, use a client like Postman
 # In Postman:
 # 1. Use POST {{baseUrl}}/kitchen/orders/RX19RJ/complete
@@ -60,6 +70,11 @@ Authorization: Bearer {{authToken}}
 #    - Select form-data
 #    - Add key "evidence" as File type
 #    - Upload an image file (max 5MB, image files only)
+# @requirements:
+# - Active KITCHEN_DELIVERY approval link must exist
+# - Evidence image is required
+# - Maximum file size: 5MB
+# - Accepted formats: jpeg, png, etc.
 POST {{baseUrl}}/kitchen/orders/RX19RJ/complete
 Authorization: Bearer {{authToken}}
 
@@ -109,18 +124,25 @@ GET {{baseUrl}}/kitchen/orders/pending
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### 2. Start working on a specific order
+### 2. Start working on a specific order (creates KITCHEN_DELIVERY approval)
 # @name startOrder
+# This creates a 24-hour approval link for delivery confirmation
 POST {{baseUrl}}/kitchen/orders/order-id-here/progress
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### 3. Check in-progress orders
+### 3. Check in-progress orders 
+# Shows orders being prepared that will need delivery confirmation
 GET {{baseUrl}}/kitchen/orders/inprogress
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
-### 4. Complete the order with evidence
+### 4. Complete order with evidence and use delivery approval
+# This endpoint:
+# 1. Uses the KITCHEN_DELIVERY approval link to confirm delivery
+# 2. Attaches evidence image to both approval and request
+# 3. Changes status to COMPLETED
+#
 # @note: For this request, use Postman with form-data:
 # POST {{baseUrl}}/kitchen/orders/order-id-here/complete
 # Headers:
@@ -129,11 +151,14 @@ Authorization: Bearer {{authToken}}
 #   evidence: [Upload image file]
 #
 # Requirements:
+# - Active KITCHEN_DELIVERY approval link must exist
 # - Image file is required
 # - Maximum file size: 5MB
 # - Accepted formats: jpeg, png, etc.
 # The image will be saved in uploads/evidence directory
-# The file path will be stored in the ServiceRequest.evidence field
+# The file path will be stored in both:
+# - ServiceRequest.evidence
+# - ApprovalLink.image (for KITCHEN_DELIVERY approval)
 POST {{baseUrl}}/kitchen/orders/order-id-here/complete
 Authorization: Bearer {{authToken}}
 

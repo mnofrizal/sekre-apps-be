@@ -1,6 +1,8 @@
 import prisma from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
-import { getFileUrl } from "../utils/helpers.js";
+import { getFileUrl, generateToken } from "../utils/helpers.js";
+import * as notificationService from "./notification.service.js";
+import { APPROVAL_FLOW } from "../utils/constants.js";
 
 const transformOrder = (order) => {
   if (order.evidence) {
@@ -132,6 +134,9 @@ export const startOrder = async (orderId, userId) => {
       id: orderId,
       type: "MEAL",
     },
+    include: {
+      approvalLinks: true,
+    },
   });
 
   if (!request) {
@@ -142,7 +147,53 @@ export const startOrder = async (orderId, userId) => {
     throw new ApiError(400, "Order is not in pending kitchen status");
   }
 
+  // Check if KITCHEN_DELIVERY approval link already exists
+  const existingLink = request.approvalLinks.find(
+    (link) =>
+      link.type === "KITCHEN_DELIVERY" &&
+      !link.isUsed &&
+      link.expiresAt > new Date()
+  );
+
+  if (existingLink) {
+    throw new ApiError(
+      409,
+      "Active KITCHEN_DELIVERY approval link already exists"
+    );
+  }
+
   return await prisma.$transaction(async (prisma) => {
+    // Mark any existing KITCHEN approval as used
+    const kitchenApproval = request.approvalLinks.find(
+      (link) =>
+        link.type === "KITCHEN" && !link.isUsed && link.expiresAt > new Date()
+    );
+
+    if (kitchenApproval) {
+      await prisma.approvalLink.update({
+        where: { token: kitchenApproval.token },
+        data: {
+          isUsed: true,
+          response: true,
+          responseNote: "Kitchen started working on order",
+          respondedAt: new Date(),
+        },
+      });
+    }
+
+    // Create KITCHEN_DELIVERY approval link
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    await prisma.approvalLink.create({
+      data: {
+        token: generateToken(),
+        type: "KITCHEN_DELIVERY",
+        requestId: orderId,
+        expiresAt,
+      },
+    });
+
     const updatedRequest = await prisma.serviceRequest.update({
       where: { id: orderId },
       data: {
@@ -170,8 +221,44 @@ export const startOrder = async (orderId, userId) => {
             createdAt: "desc",
           },
         },
+        handler: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
+
+    // Send push notifications
+    try {
+      // Notify admin
+      await notificationService.sendNotificationToRole("ADMIN", {
+        title: "Order Update",
+        body: `Pesanan #${orderId} sekarang sedang diproses`,
+        data: {
+          type: "order_update",
+          orderId: orderId,
+          status: "IN_PROGRESS",
+        },
+      });
+
+      // Notify request handler
+      await notificationService.sendNotificationToUsers(
+        [updatedRequest.handler.id],
+        {
+          title: "Order Update",
+          body: `Pesanan Anda #${orderId} sekarang sedang diproses oleh dapur`,
+          data: {
+            type: "order_update",
+            orderId: orderId,
+            status: "IN_PROGRESS",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error sending push notifications:", error);
+      // Don't throw error since notification failure shouldn't affect the order update
+    }
 
     return transformOrder(updatedRequest);
   });
@@ -185,6 +272,9 @@ export const completeOrder = async (orderId, userId, evidencePath = null) => {
     where: {
       id: orderId,
       type: "MEAL",
+    },
+    include: {
+      approvalLinks: true,
     },
   });
 
@@ -200,11 +290,37 @@ export const completeOrder = async (orderId, userId, evidencePath = null) => {
     throw new ApiError(400, "Evidence image is required to complete the order");
   }
 
+  // Find active KITCHEN_DELIVERY approval link
+  const approvalLink = request.approvalLinks.find(
+    (link) =>
+      link.type === "KITCHEN_DELIVERY" &&
+      !link.isUsed &&
+      link.expiresAt > new Date()
+  );
+
+  if (!approvalLink) {
+    throw new ApiError(400, "No active KITCHEN_DELIVERY approval link found");
+  }
+
+  const flow = APPROVAL_FLOW[approvalLink.type];
+
   return await prisma.$transaction(async (prisma) => {
+    // Mark approval link as used
+    await prisma.approvalLink.update({
+      where: { token: approvalLink.token },
+      data: {
+        isUsed: true,
+        response: true, // Always true since this is completion
+        responseNote: "Order completed by kitchen",
+        respondedAt: new Date(),
+        image: evidencePath,
+      },
+    });
+
     const updatedRequest = await prisma.serviceRequest.update({
       where: { id: orderId },
       data: {
-        status: "COMPLETED",
+        status: flow.nextStatus, // Will be COMPLETED based on APPROVAL_FLOW
         evidence: evidencePath,
         statusHistory: {
           create: {
@@ -229,8 +345,44 @@ export const completeOrder = async (orderId, userId, evidencePath = null) => {
             createdAt: "desc",
           },
         },
+        handler: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
+
+    // Send push notifications
+    try {
+      // Notify admin
+      await notificationService.sendNotificationToRole("ADMIN", {
+        title: "Pesanan Selesai",
+        body: `Pesanan #${orderId} telah diselesaikan oleh dapur`,
+        data: {
+          type: "order_completed",
+          orderId: orderId,
+          status: "COMPLETED",
+        },
+      });
+
+      // Notify request handler
+      await notificationService.sendNotificationToUsers(
+        [updatedRequest.handler.id],
+        {
+          title: "Pesanan Selesai",
+          body: `Pesanan Anda #${orderId} telah dikirimkan oleh dapur`,
+          data: {
+            type: "order_completed",
+            orderId: orderId,
+            status: "COMPLETED",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error sending push notifications:", error);
+      // Don't throw error since notification failure shouldn't affect the order update
+    }
 
     return transformOrder(updatedRequest);
   });
@@ -290,8 +442,49 @@ export const updateOrderStatus = async (orderId, status, userId) => {
             createdAt: "desc",
           },
         },
+        handler: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
+
+    // Send push notifications
+    try {
+      // Notify admin
+      await notificationService.sendNotificationToRole("ADMIN", {
+        title: "Order Update",
+        body: `Order #${orderId} status changed to ${status}`,
+        data: {
+          type: "order_update",
+          orderId: orderId,
+          status: status,
+        },
+      });
+
+      // For specific status changes, notify the handler
+      if (status === "REJECTED_KITCHEN" || status === "CANCELLED") {
+        await notificationService.sendNotificationToUsers(
+          [updatedRequest.handler.id],
+          {
+            title: "Order Update",
+            body:
+              status === "REJECTED_KITCHEN"
+                ? `Your order #${orderId} has been rejected by kitchen`
+                : `Your order #${orderId} has been cancelled`,
+            data: {
+              type: "order_update",
+              orderId: orderId,
+              status: status,
+            },
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error sending push notifications:", error);
+      // Don't throw error since notification failure shouldn't affect the status update
+    }
 
     return updatedRequest;
   });

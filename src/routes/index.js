@@ -8,6 +8,8 @@ import approvalRoutes from "./approval.routes.js";
 import groupsNotifRoutes from "./groupsNotif.routes.js";
 import kitchenRoutes from "./kitchen.routes.js";
 import secretaryRoutes from "./secretary.routes.js";
+import pushTokenRoutes from "./pushToken.routes.js";
+import notificationRoutes from "./notification.routes.js";
 
 const router = express.Router();
 
@@ -21,5 +23,7 @@ router.use("/requests/monitoring", serviceRequestRoutes);
 router.use("/notif/groups", groupsNotifRoutes);
 router.use("/kitchen", kitchenRoutes);
 router.use("/secretary", secretaryRoutes);
+router.use("/push-tokens", pushTokenRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;

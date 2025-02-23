@@ -10,15 +10,15 @@ export const APPROVAL_FLOW = {
     rejectStatus: "REJECTED_GA",
   },
   KITCHEN: {
+    nextApproval: "KITCHEN_DELIVERY",
+    nextStatus: "IN_PROGRESS",
+    rejectStatus: "REJECTED_KITCHEN",
+  },
+  KITCHEN_DELIVERY: {
     nextApproval: null,
     nextStatus: "COMPLETED",
     rejectStatus: "REJECTED_KITCHEN",
   },
-  // KITCHEN_DELIVERY: {
-  //   nextApproval: null,
-  //   nextStatus: "COMPLETED",
-  //   rejectStatus: "REJECTED_KITCHEN",
-  // },
 };
 
 export const FRONTEND_URL = process.env.FRONTEND_ENDPOINT_URL;

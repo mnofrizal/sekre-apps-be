@@ -15,6 +15,7 @@ const employees = [
     email: "abdul.kadir@plnindonesiapowwe.co.id",
     nomorHp: "087733760363",
     isAsman: true,
+    sekretaris: "sekmsmh.sla",
   },
   {
     nip: "941733238I",
@@ -25,6 +26,7 @@ const employees = [
     email: "rifda@plnindonesiapowwe.co.id",
     nomorHp: "087733760363",
     isAsman: false,
+    sekretaris: "sekmsmh.sla",
   },
   {
     nip: "961733371I",
@@ -35,6 +37,7 @@ const employees = [
     email: "m.naufal@plnindonesiapowwe.co.id",
     nomorHp: "087733760363",
     isAsman: false,
+    sekretaris: "sekmsmh.sla",
   },
   {
     nip: "7292352JA",

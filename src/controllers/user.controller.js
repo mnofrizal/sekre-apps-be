@@ -61,6 +61,21 @@ export const changeNotifyStatus = async (req, res, next) => {
   }
 };
 
+export const updatePushToken = async (req, res, next) => {
+  try {
+    const user = await userService.updatePushToken(
+      req.params.id,
+      req.body.pushToken
+    );
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    res.json(ApiResponse.success("Push token updated successfully", user));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteUser = async (req, res, next) => {
   try {
     const success = await userService.deleteUser(req.params.id);

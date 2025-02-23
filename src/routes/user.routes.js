@@ -23,6 +23,11 @@ router.put(
 );
 router.delete("/:id", userController.deleteUser);
 router.put("/:id/changeNotifyStatus", userController.changeNotifyStatus);
+router.put(
+  "/:id/push-token",
+  validateRequest(userValidation.updatePushToken),
+  userController.updatePushToken
+);
 router.get("/data/export", userController.exportUsersToExcel); // Added route to export users to Excel
 // To fetch this in the front end, send a GET request to this endpoint and handle the response as a binary file.
 

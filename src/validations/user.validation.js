@@ -12,7 +12,7 @@ export const userValidation = {
       .required(),
     avatar: Joi.string(),
     isActive: Joi.boolean(),
-    phone: Joi.string(),
+    phone: Joi.string().allow(null, ""),
   }),
 
   updateUser: Joi.object({
@@ -23,6 +23,6 @@ export const userValidation = {
     role: Joi.string().valid(...Object.values(DashboardRole)),
     avatar: Joi.string(),
     isActive: Joi.boolean(),
-    phone: Joi.string(),
+    phone: Joi.string().allow(null, ""),
   }).min(1),
 };
