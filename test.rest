@@ -173,6 +173,11 @@ GET {{baseUrl}}/service-requests?page=1&limit=7&sort=requestDate:desc
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
 
+### Get search service requests
+GET {{baseUrl}}/service-requests?search=G9HL5Kwdwqdwdwdwdwd
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
 ### Get 5 most recent active orders
 GET {{baseUrl}}/service-requests/recent-active
 Content-Type: {{contentType}}

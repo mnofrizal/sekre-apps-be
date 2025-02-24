@@ -16,50 +16,126 @@ const transformOrders = (orders) => {
 };
 
 /**
- * Get all kitchen orders
+ * Get all kitchen orders with pagination, sorting and filtering
  */
-export const getAllOrders = async () => {
-  const orders = await prisma.serviceRequest.findMany({
-    where: {
-      type: "MEAL",
-      status: {
-        in: [
-          "PENDING_KITCHEN",
-          "REJECTED_KITCHEN",
-          "IN_PROGRESS",
-          "COMPLETED",
-          "CANCELLED",
-        ],
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      employeeOrders: {
-        select: {
-          id: true,
-          employeeName: true,
-          entity: true,
-          orderItems: {
-            select: {
-              id: true,
-              quantity: true,
-              notes: true,
-              menuItem: {
-                select: {
-                  id: true,
-                  name: true,
-                  category: true,
-                },
+export const getAllOrders = async (params = {}) => {
+  const {
+    startDate,
+    endDate,
+    status,
+    page = 1,
+    limit = 10,
+    sort = "createdAt:desc", // Default sort by createdAt in descending order
+    id, // Search by order ID
+    judulPekerjaan, // Search by judulPekerjaan
+  } = params;
+
+  // Parse sort parameter (field:order)
+  const [sortField, sortOrder] = sort.split(":");
+  const orderBy = {
+    [sortField]: sortOrder.toLowerCase() === "asc" ? "asc" : "desc",
+  };
+
+  // Base query
+  const includeOptions = {
+    employeeOrders: {
+      select: {
+        id: true,
+        employeeName: true,
+        entity: true,
+        orderItems: {
+          select: {
+            id: true,
+            quantity: true,
+            notes: true,
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
               },
             },
           },
         },
       },
     },
+    statusHistory: {
+      orderBy: {
+        createdAt: "desc",
+      },
+    },
+  };
+
+  // Build where clause with filters
+  const whereClause = {
+    AND: [
+      {
+        type: "MEAL",
+        status: status
+          ? { equals: status }
+          : {
+              in: [
+                "PENDING_KITCHEN",
+                "REJECTED_KITCHEN",
+                "IN_PROGRESS",
+                "COMPLETED",
+                "CANCELLED",
+              ],
+            },
+      },
+      // Date range filter
+      startDate && endDate
+        ? {
+            requestDate: {
+              gte: new Date(startDate),
+              lte: new Date(endDate),
+            },
+          }
+        : {},
+      // ID search
+      id
+        ? {
+            id: {
+              contains: id,
+              mode: "insensitive",
+            },
+          }
+        : {},
+      // JudulPekerjaan search
+      judulPekerjaan
+        ? {
+            judulPekerjaan: {
+              contains: judulPekerjaan,
+              mode: "insensitive",
+            },
+          }
+        : {},
+    ],
+  };
+
+  // Get total count for pagination
+  const total = await prisma.serviceRequest.count({
+    where: whereClause,
   });
-  return transformOrders(orders);
+
+  // Get paginated requests with filters applied
+  const orders = await prisma.serviceRequest.findMany({
+    where: whereClause,
+    include: includeOptions,
+    orderBy,
+    skip: (parseInt(page) - 1) * parseInt(limit),
+    take: parseInt(limit),
+  });
+
+  return {
+    orders: transformOrders(orders),
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    },
+  };
 };
 
 /**

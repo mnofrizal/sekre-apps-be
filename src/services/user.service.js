@@ -38,6 +38,20 @@ export const getUserByEmail = async (email) => {
   });
 };
 
+export const getUserByUsername = async (username) => {
+  return prisma.dashboardUser.findUnique({
+    where: { username },
+  });
+};
+
+export const getUserByEmailOrUsername = async (emailOrUsername) => {
+  return prisma.dashboardUser.findFirst({
+    where: {
+      OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
+    },
+  });
+};
+
 export const createUser = async (userData) => {
   const user = await prisma.dashboardUser.create({
     data: userData,

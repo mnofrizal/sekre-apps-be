@@ -221,6 +221,7 @@ const menuItems = [
   { name: "Snack Toko", category: "SNACK" },
 ];
 
+// Sample service requests data
 const serviceRequests = [
   {
     judulPekerjaan: "Piket  Listrik Coal Handling ",
@@ -16347,6 +16348,7 @@ async function seedServiceRequests() {
   for (const request of serviceRequests) {
     await prisma.serviceRequest.create({
       data: {
+        id: generateToken(), // Use generateToken() for the ID
         ...request,
         handlerId: adminUser.id,
         employeeOrders: {
@@ -16389,7 +16391,7 @@ async function main() {
     await seedUsers();
     await seedEmployees();
     await seedMenuItems();
-    await seedServiceRequests();
+    await seedServiceRequests(); // Uncommented this line
 
     console.log("Seeding completed successfully");
   } catch (error) {

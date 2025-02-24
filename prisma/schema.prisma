@@ -113,7 +113,7 @@ model MenuItem {
 
 // ======= REQUEST MANAGEMENT =======
 model ServiceRequest {
-  id             String        @id @default(cuid())
+  id             String        @id
   judulPekerjaan String
   type           ServiceType   @default(MEAL)
   status         RequestStatus @default(PENDING_SUPERVISOR)

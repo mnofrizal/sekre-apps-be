@@ -11,7 +11,15 @@ router.use(auth);
 // Core Order Management
 /**
  * @route   GET /api/v1/kitchen/orders
- * @desc    Get all kitchen orders
+ * @desc    Get all kitchen orders with pagination, sorting and filtering
+ * @query   page - Page number (default: 1)
+ * @query   limit - Items per page (default: 10)
+ * @query   sort - Sort field and order (e.g. requestDate:desc, createdAt:asc)
+ * @query   status - Filter by status (e.g. PENDING_KITCHEN, IN_PROGRESS)
+ * @query   startDate - Filter by start date (YYYY-MM-DD)
+ * @query   endDate - Filter by end date (YYYY-MM-DD)
+ * @query   id - Search by order ID (case-insensitive partial match)
+ * @query   judulPekerjaan - Search by judul pekerjaan (case-insensitive partial match)
  * @access  Private
  */
 router.get("/orders", kitchenController.getAllOrders);

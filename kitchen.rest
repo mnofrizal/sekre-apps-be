@@ -16,10 +16,53 @@ Content-Type: {{contentType}}
 
 ### ==================== Kitchen Routes ====================
 
-### Get all kitchen orders (MEAL type service requests)
-GET {{baseUrl}}/kitchen/orders
+### ==================== Kitchen Orders with Pagination & Sorting ====================
+
+### Get all kitchen orders with pagination (default sort by createdAt:desc)
+GET {{baseUrl}}/kitchen/orders?page=1&limit=10
 Content-Type: {{contentType}}
 Authorization: Bearer {{authToken}}
+
+### Get orders sorted by requestDate (newest first)
+GET {{baseUrl}}/kitchen/orders?sort=requestDate:desc
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get orders sorted by requiredDate (oldest first)
+GET {{baseUrl}}/kitchen/orders?sort=requiredDate:asc&page=1&limit=7
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get orders with date range filter and sorting
+GET {{baseUrl}}/kitchen/orders?startDate=2024-01-01&endDate=2024-12-31&sort=requestDate:desc
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get orders by status with sorting
+GET {{baseUrl}}/kitchen/orders?status=PENDING_KITCHEN&sort=createdAt:desc
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Search orders by ID (partial match)
+GET {{baseUrl}}/kitchen/orders?id=RX19
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Search orders by judul pekerjaan (case-insensitive)
+GET {{baseUrl}}/kitchen/orders?judulPekerjaan=Start
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Combined search and filters example
+GET {{baseUrl}}/kitchen/orders?status=IN_PROGRESS&judulPekerjaan=Rapat&startDate=2024-01-01&endDate=2024-12-31&sort=requestDate:desc&page=1&limit=20
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Search by ID with pagination and sorting
+GET {{baseUrl}}/kitchen/orders?id=RX&page=1&limit=10&sort=createdAt:desc
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
 
 ### Get kitchen order statistics
 GET {{baseUrl}}/kitchen/orders/stats

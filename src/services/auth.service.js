@@ -10,15 +10,15 @@ const generateAccessToken = (userId) => {
   });
 };
 
-export const login = async (email, password) => {
-  const user = await userService.getUserByEmail(email);
+export const login = async (emailOrUsername, password) => {
+  const user = await userService.getUserByEmailOrUsername(emailOrUsername);
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "Invalid email/username or password");
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "Invalid email/username or password");
   }
 
   const accessToken = generateAccessToken(user.id);

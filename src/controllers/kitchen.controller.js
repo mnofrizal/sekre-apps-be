@@ -3,11 +3,19 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 
 /**
- * Get all kitchen orders
+ * Get all kitchen orders with pagination, sorting and filtering
  */
 export const getAllOrders = async (req, res, next) => {
   try {
-    const orders = await kitchenService.getAllOrders();
+    const { startDate, endDate, status, page, limit, sort } = req.query;
+    const orders = await kitchenService.getAllOrders({
+      startDate,
+      endDate,
+      status,
+      page,
+      limit,
+      sort,
+    });
     res.json(ApiResponse.success("Orders retrieved successfully", orders));
   } catch (error) {
     next(error);
